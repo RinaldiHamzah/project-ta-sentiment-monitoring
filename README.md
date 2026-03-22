@@ -168,20 +168,6 @@ APP TA/
 ├─ analisis/
 
 
-## Keamanan & GitHub
-
-File yang disarankan untuk di-push:
-- Source code
-- `requirements.txt`
-- `schema.sql`
-- `README.md`
-
-File yang jangan di-push:
-- `.env`
-- folder virtual environment (`env/`, `.venv/`)
-- file cache Python (`__pycache__/`)
-- data sensitif atau dump DB produksi
-
 ## Troubleshooting
 
 ### 1) `mysql` tidak dikenali di PowerShell
@@ -217,7 +203,4 @@ Pastikan file model berikut ada di direktori model yang dipakai kode:
 3. Push branch: `git push origin feature/nama-fitur`
 4. Buat Pull Request
 
-## Lisensi
-
-Silakan sesuaikan dengan lisensi proyek yang kamu gunakan (misalnya MIT).
 
