@@ -1,0 +1,996 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-3 admin-wrap">
+  {% set selected_count = preview.rows|length %}
+  {% set total_tables = catalog|length %}
+  {% set selected_meta = (catalog | selectattr('key', 'equalto', selected_table) | list | first) %}
+
+  <div class="admin-hero p-4 p-lg-5 mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
+      <div>
+        <h4 class="fw-bold mb-2">
+          <i class="bi bi-database-gear me-2"></i>Data Manajement
+        </h4>
+        <p class="mb-0 opacity-75">Panel Manajemen Data Admin untuk Monitoring Tabel Data</p>
+      </div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <span class="badge rounded-pill text-bg-light px-3 py-2 text-dark">
+          <i class="bi bi-table me-1"></i>{{ total_tables }} Tabel
+        </span>
+        <span class="badge rounded-pill text-bg-dark px-3 py-2">
+          <i class="bi bi-shield-lock me-1"></i>Admin
+        </span>
+        <button id="btn-refresh-admin-data" class="btn btn-light btn-sm">
+          <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin-action-feedback" class="alert d-none mb-4" role="alert"></div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm table-card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <strong>Daftar Tabel</strong>
+          <span class="small text-muted">Admin Scope</span>
+        </div>
+        <div class="card-body">
+          <form method="get" action="{{ url_for('admin_data_management') }}" class="mb-3 js-async-nav-form">
+            <label class="form-label small text-muted mb-2">Pilih tabel aktif</label>
+            <select name="table" class="form-select table-selector js-async-nav-select">
+              {% for item in catalog %}
+              <option value="{{ item.key }}" {% if selected_table == item.key %}selected{% endif %}>{{ item.label }}</option>
+              {% endfor %}
+            </select>
+          </form>
+
+          <div class="row g-3 admin-table-grid">
+            {% for item in catalog %}
+            <div class="col-xl-4 col-md-6">
+              <a href="{{ url_for('admin_data_management', table=item.key) }}" class="list-group-item list-group-item-action border rounded-3 h-100 table-link js-async-nav-link {% if selected_table == item.key %}active{% endif %}">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                  <div>
+                    <div class="fw-semibold"><i class="bi {{ item.icon }} me-2"></i>{{ item.label }}</div>
+                    <div class="small text-muted mt-1">{{ item.description }}</div>
+                  </div>
+                  <span class="badge {{ 'text-bg-success' if item.key in ['hotels', 'hotel_reviews', 'sentiment_reviews'] else 'text-bg-secondary' }}">
+                    {{ 'Kelola' if item.key in ['hotels', 'hotel_reviews', 'sentiment_reviews'] else 'View' }}
+                  </span>
+                </div>
+              </a>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12">
+      <div class="card border-0 shadow-sm table-card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <strong>Preview Tabel {{ selected_label }}</strong>
+          <span class="small text-muted">{{ preview.total_rows if preview.total_rows is defined else selected_count }} data</span>
+        </div>
+        {% if selected_table in ['hotel_reviews', 'sentiment_reviews'] %}
+        <div class="card-body border-bottom pb-3">
+          <form method="get" action="{{ url_for('admin_data_management') }}" class="row g-2 align-items-end js-async-nav-form">
+            <input type="hidden" name="table" value="{{ selected_table }}">
+            <input type="hidden" name="limit" value="{{ preview.limit if preview.limit is defined else 8 }}">
+            <div class="col-lg-6">
+              <label class="form-label small text-muted mb-1">Cari Data</label>
+              <input
+                type="text"
+                name="search"
+                class="form-control"
+                value="{{ preview.search if preview.search is defined else '' }}"
+                placeholder="{{ 'Cari review_id, hotel_id, user_name, review_text, source' if selected_table == 'hotel_reviews' else 'Cari sentiment_id, review_id, hotel_id, user_name, label sentimen' }}"
+              >
+            </div>
+            <div class="col-md-3 col-lg-2">
+              <label class="form-label small text-muted mb-1">Limit</label>
+              <select name="limit" class="form-select">
+                {% for option in [8, 10, 25, 50] %}
+                <option value="{{ option }}" {% if (preview.limit if preview.limit is defined else 8) == option %}selected{% endif %}>{{ option }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3 col-lg-4 d-flex gap-2">
+              <button type="button" class="btn btn-primary js-async-nav-submit">
+                <i class="bi bi-search me-1"></i>Cari
+              </button>
+              {% if preview.search %}
+              <a href="{{ url_for('admin_data_management', table=selected_table, limit=preview.limit if preview.limit is defined else 8) }}" class="btn btn-outline-secondary js-async-nav-link">
+                Reset
+              </a>
+              {% endif %}
+            </div>
+          </form>
+        </div>
+        {% endif %}
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  {% for col in preview.columns %}
+                  <th class="{% if loop.first %}ps-3{% endif %}">{{ col.replace('_', ' ') }}</th>
+                  {% endfor %}
+                  {% if selected_table in ['hotels', 'hotel_reviews', 'sentiment_reviews'] %}
+                  <th class="text-end pe-3">Aksi</th>
+                  {% endif %}
+                </tr>
+              </thead>
+              <tbody>
+                {% if preview.rows %}
+                  {% for row in preview.rows %}
+                  <tr
+                    {% if selected_table == 'hotels' %}data-hotel-id="{{ row.hotel_id }}"{% endif %}
+                    {% if selected_table == 'hotel_reviews' %}data-review-id="{{ row.review_id }}"{% endif %}
+                    {% if selected_table == 'sentiment_reviews' %}data-sentiment-id="{{ row.sentiment_id }}"{% endif %}
+                  >
+                    {% for col in preview.columns %}
+                    <td class="{% if loop.first %}ps-3 fw-semibold{% endif %}" data-col="{{ col }}">
+                      {% set value = row[col] %}
+                      {% if selected_table == 'hotels' and col == 'hotel_name' %}
+                        <div class="fw-semibold">{{ value or '-' }}</div>
+                      {% elif selected_table == 'hotels' and col == 'address' %}
+                        <div class="cell-text-wrap cell-address" title="{{ value or '' }}">{{ value or '-' }}</div>
+                      {% elif selected_table == 'hotels' and col in ['place_id', 'google_place_id'] %}
+                        <div class="cell-code-wrap">
+                          <code class="cell-code" title="{{ value or '' }}">{{ value or '-' }}</code>
+                        </div>
+                      {% elif selected_table == 'hotels' and col == 'scrape_interval_minutes' %}
+                        <span class="badge text-bg-light border">{{ value or 0 }} menit</span>
+                      {% elif selected_table == 'hotels' and col == 'is_active' %}
+                        <span class="badge {{ 'text-bg-success' if value else 'text-bg-secondary' }}">
+                          {{ 'Aktif' if value else 'Nonaktif' }}
+                        </span>
+                      {% elif value is sameas true %}
+                        <span class="badge text-bg-success">TRUE</span>
+                      {% elif value is sameas false %}
+                        <span class="badge text-bg-secondary">FALSE</span>
+                      {% elif value.__class__.__name__ == 'datetime' %}
+                        {{ value.strftime("%Y-%m-%d %H:%M") }}
+                      {% elif value is none %}
+                        <span class="text-muted">-</span>
+                      {% else %}
+                        {{ value }}
+                      {% endif %}
+                    </td>
+                    {% endfor %}
+                    {% if selected_table == 'hotels' %}
+                    <td class="text-end pe-3 action-cell">
+                      <button
+                        type="button"
+                        class="btn btn-sm {{ 'btn-outline-warning' if row.is_active else 'btn-outline-success' }} js-async-action-btn"
+                        data-action="{{ url_for('admin_toggle_hotel_active', hotel_id=row.hotel_id) }}"
+                        data-method="POST"
+                      >
+                        <i class="bi {{ 'bi-pause-circle' if row.is_active else 'bi-play-circle' }}"></i>
+                        {{ 'Nonaktifkan' if row.is_active else 'Aktifkan' }}
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-danger js-async-action-btn"
+                        data-action="{{ url_for('admin_delete_hotel_permanently', hotel_id=row.hotel_id) }}"
+                        data-method="POST"
+                        data-confirm="Hapus permanen hotel? Tindakan akan berhasil jika tidak ada data terkait."
+                      >
+                        <i class="bi bi-trash"></i>
+                        Hapus
+                      </button>
+                    </td>
+                    {% elif selected_table == 'hotel_reviews' %}
+                    <td class="text-end pe-3 action-cell">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary js-edit-hotel-review"
+                        title="Edit tanpa refresh"
+                        data-review-id="{{ row.review_id }}"
+                        data-hotel-id="{{ row.hotel_id }}"
+                        data-user-name="{{ row.user_name|default('', true)|e }}"
+                        data-rating="{{ row.rating }}"
+                        data-review-date="{{ row.review_date.strftime('%Y-%m-%dT%H:%M') if row.review_date else '' }}"
+                        data-source="{{ row.source|default('', true)|e }}"
+                        data-review-text="{{ row.review_text|default('', true)|e }}"
+                      >
+                        <i class="bi bi-pencil-square"></i>
+                      </button>
+                      <form method="post" action="{{ url_for('admin_delete_hotel_review', review_id=row.review_id) }}" class="d-inline js-async-form" data-confirm="Hapus review ini?">
+                        <button type="button" class="btn btn-sm btn-outline-danger js-async-submit-btn">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </form>
+                    </td>
+                    {% elif selected_table == 'sentiment_reviews' %}
+                    <td class="text-end pe-3 action-cell">
+                      <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary js-edit-sentiment-review"
+                        title="Edit tanpa refresh"
+                        data-sentiment-id="{{ row.sentiment_id }}"
+                        data-review-id="{{ row.review_id }}"
+                        data-sentiment-nb="{{ row.sentiment_nb|default('', true)|e }}"
+                        data-sentiment-svm="{{ row.sentiment_svm|default('', true)|e }}"
+                        data-source="{{ row.source|default('Google Maps', true)|e }}"
+                      >
+                        <i class="bi bi-pencil-square"></i>
+                      </button>
+                      <form method="post" action="{{ url_for('admin_delete_sentiment_review', sentiment_id=row.sentiment_id) }}" class="d-inline js-async-form" data-confirm="Hapus data sentimen?">
+                        <button type="button" class="btn btn-sm btn-outline-danger js-async-submit-btn">
+                          <i class="bi bi-trash"></i>
+                        </button>
+                      </form>
+                    </td>
+                    {% endif %}
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="{{ (preview.columns|length) + (1 if selected_table in ['hotels', 'hotel_reviews', 'sentiment_reviews'] else 0) }}" class="text-center py-4 text-muted">Belum ada data</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% if selected_table in ['hotel_reviews', 'sentiment_reviews'] and (preview.total_pages if preview.total_pages is defined else 1) > 1 %}
+        <div class="card-footer bg-transparent d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+          <div class="small text-muted">
+            Halaman {{ preview.page }} dari {{ preview.total_pages }}{% if preview.search %} untuk pencarian "{{ preview.search }}"{% endif %}
+          </div>
+          <div class="d-flex gap-2 flex-wrap">
+            {% set prev_page = preview.page - 1 %}
+            {% set next_page = preview.page + 1 %}
+            <form method="get" action="{{ url_for('admin_data_management') }}" class="js-async-nav-form d-inline">
+              <input type="hidden" name="table" value="{{ selected_table }}">
+              <input type="hidden" name="page" value="{{ prev_page }}">
+              <input type="hidden" name="limit" value="{{ preview.limit }}">
+              <input type="hidden" name="search" value="{{ preview.search }}">
+              <button type="button" class="btn btn-sm btn-outline-secondary js-async-nav-submit" {% if preview.page <= 1 %}disabled{% endif %}>
+                Sebelumnya
+              </button>
+            </form>
+            <form method="get" action="{{ url_for('admin_data_management') }}" class="js-async-nav-form d-inline">
+              <input type="hidden" name="table" value="{{ selected_table }}">
+              <input type="hidden" name="page" value="{{ next_page }}">
+              <input type="hidden" name="limit" value="{{ preview.limit }}">
+              <input type="hidden" name="search" value="{{ preview.search }}">
+              <button type="button" class="btn btn-sm btn-outline-secondary js-async-nav-submit" {% if preview.page >= preview.total_pages %}disabled{% endif %}>
+                Berikutnya
+              </button>
+            </form>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if selected_table == 'hotels' %}
+  <div class="card border-0 shadow-sm table-card mb-4">
+    <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+      <strong>Keamanan Status Hotel</strong>
+      <span class="small text-muted">Safe Action</span>
+    </div>
+    <div class="card-body">
+      <div class="alert alert-warning border-0 mb-3 direct-apply-note">
+        Gunakan <strong>Nonaktifkan</strong> untuk menghentikan akses user dan penggunaan hotel tanpa menghapus histori dan 
+        Gunakan <strong>Hapus</strong> jika hotel sudah tidak memiliki data terkait sama sekali
+      </div>
+      <div class="small text-muted mb-0">
+        Jika hotel dinonaktifkan user yang terhubung tidak bisa login sampai hotel diaktifkan kembali
+      </div>
+    </div>
+  </div>
+  {% elif selected_table == 'hotel_reviews' %}
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm table-card h-100">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <strong>Tambah Hotel Review</strong>
+          <span class="small text-muted">Manual Entry</span>
+        </div>
+        <div class="card-body">
+          <form method="post" action="{{ url_for('admin_create_hotel_review') }}" class="js-async-form">
+            <div class="mb-3">
+              <label class="form-label small text-muted">Hotel</label>
+              <select name="hotel_id" class="form-select" required id="create-hotel-review-hotel-id">
+                {% for h in hotels %}
+                <option value="{{ h.hotel_id }}">{{ h.hotel_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small text-muted">User Name</label>
+              <input type="text" name="user_name" class="form-control" required id="create-hotel-review-user-name">
+            </div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small text-muted">Rating</label>
+                <select name="rating" class="form-select" required id="create-hotel-review-rating">
+                  {% for val in range(1, 6) %}
+                  <option value="{{ val }}">{{ val }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-muted">Tanggal Review</label>
+                <input type="datetime-local" name="review_date" class="form-control" required id="create-hotel-review-date">
+              </div>
+            </div>
+            <div class="mt-3 mb-3">
+              <label class="form-label small text-muted">Source</label>
+              <input type="text" name="source" class="form-control" value="Google Maps" id="create-hotel-review-source">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small text-muted">Review Text</label>
+              <textarea name="review_text" class="form-control" rows="4" placeholder="Tulis review manual jika diperlukan" id="create-hotel-review-text"></textarea>
+            </div>
+            <button type="button" class="btn btn-primary js-async-submit-btn">
+              <i class="bi bi-plus-circle me-1"></i>Tambah Review
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm table-card h-100" id="hotel-review-edit">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <strong>Edit Hotel Review</strong>
+          <a href="{{ url_for('admin_data_management', table='hotel_reviews') }}" class="btn btn-sm btn-outline-secondary js-async-nav-link">Reset</a>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning border-0 mb-3 direct-apply-note">
+            {% if edit_hotel_review %}
+            Perubahan review akan langsung diterapkan saat tombol <strong>Simpan Perubahan</strong> ditekan dan Jika review sudah punya data sentimen dan review terkait ikut disinkronkan otomatis
+            {% else %}
+            Pilih salah satu row pada tabel preview untuk mengedit review dan Form akan langsung terisi otomatis
+            {% endif %}
+          </div>
+          <form method="post" action="{{ url_for('admin_update_hotel_review', review_id=edit_hotel_review.review_id) if edit_hotel_review else '#' }}" class="js-async-form" id="hotel-review-edit-form">
+            <div class="mb-3">
+              <label class="form-label small text-muted">Hotel</label>
+              <select name="hotel_id" class="form-select" required id="hotel-review-edit-hotel-id">
+                {% for h in hotels %}
+                <option value="{{ h.hotel_id }}" {% if edit_hotel_review and h.hotel_id == edit_hotel_review.hotel_id %}selected{% endif %}>{{ h.hotel_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label small text-muted">User Name</label>
+              <input type="text" name="user_name" class="form-control" value="{{ edit_hotel_review.user_name if edit_hotel_review else '' }}" required id="hotel-review-edit-user-name">
+            </div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small text-muted">Rating</label>
+                <select name="rating" class="form-select" required id="hotel-review-edit-rating">
+                  {% for val in range(1, 6) %}
+                  <option value="{{ val }}" {% if edit_hotel_review and val == edit_hotel_review.rating %}selected{% endif %}>{{ val }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-muted">Tanggal Review</label>
+                <input type="datetime-local" name="review_date" class="form-control" value="{{ edit_hotel_review.review_date.strftime('%Y-%m-%dT%H:%M') if edit_hotel_review and edit_hotel_review.review_date else '' }}" required id="hotel-review-edit-date">
+              </div>
+            </div>
+            <div class="mt-3 mb-3">
+              <label class="form-label small text-muted">Source</label>
+              <input type="text" name="source" class="form-control" value="{{ edit_hotel_review.source if edit_hotel_review and edit_hotel_review.source else 'Google Maps' }}" id="hotel-review-edit-source">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small text-muted">Review Text</label>
+              <textarea name="review_text" class="form-control" rows="4" id="hotel-review-edit-text">{{ edit_hotel_review.review_text if edit_hotel_review and edit_hotel_review.review_text else '' }}</textarea>
+            </div>
+            <button type="button" class="btn btn-success js-async-submit-btn" id="hotel-review-edit-submit" {% if not edit_hotel_review %}disabled{% endif %}>
+              <i class="bi bi-save me-1"></i>Simpan Perubahan
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% elif selected_table == 'sentiment_reviews' %}
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm table-card h-100">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <strong>Tambah Sentiment Review</strong>
+          <span class="small text-muted">Manual Entry</span>
+        </div>
+        <div class="card-body">
+          <form method="post" action="{{ url_for('admin_create_sentiment_review') }}" class="js-async-form">
+            <div class="mb-3">
+              <label class="form-label small text-muted">Review ID</label>
+              <select name="review_id" class="form-select" required>
+                {% for review in review_choices %}
+                <option value="{{ review.review_id }}">#{{ review.review_id }} | Hotel {{ review.hotel_id }} | {{ review.user_name }} | {{ review.rating }}/5</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small text-muted">Naive Bayes</label>
+                <select name="sentiment_nb" class="form-select" required>
+                  <option value="POSITIF">POSITIF</option>
+                  <option value="NEGATIF">NEGATIF</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-muted">SVM</label>
+                <select name="sentiment_svm" class="form-select" required>
+                  <option value="POSITIF">POSITIF</option>
+                  <option value="NEGATIF">NEGATIF</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt-3 mb-3">
+              <label class="form-label small text-muted">Source</label>
+              <input type="text" name="source" class="form-control" value="Google Maps">
+            </div>
+            <button type="button" class="btn btn-primary js-async-submit-btn">
+              <i class="bi bi-plus-circle me-1"></i>Tambah Sentiment
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm table-card h-100" id="sentiment-review-edit">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <strong>Edit Sentiment Review</strong>
+          <a href="{{ url_for('admin_data_management', table='sentiment_reviews') }}" class="btn btn-sm btn-outline-secondary js-async-nav-link">Reset</a>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-warning border-0 mb-3 direct-apply-note">
+            {% if edit_sentiment_review %}
+            Perubahan label sentimen akan langsung diterapkan ke database saat disimpan
+            {% else %}
+            Pilih salah satu row pada tabel preview untuk mengedit label sentimen dan Form akan langsung terisi otomatis
+            {% endif %}
+          </div>
+          <form method="post" action="{{ url_for('admin_update_sentiment_review', sentiment_id=edit_sentiment_review.sentiment_id) if edit_sentiment_review else '#' }}" class="js-async-form" id="sentiment-review-edit-form">
+            <div class="mb-3">
+              <label class="form-label small text-muted">Review ID</label>
+              <input type="text" class="form-control" value="{{ edit_sentiment_review.review_id if edit_sentiment_review else '' }}" disabled id="sentiment-review-edit-review-id">
+            </div>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small text-muted">Naive Bayes</label>
+                <select name="sentiment_nb" class="form-select" required id="sentiment-review-edit-nb">
+                  <option value="POSITIF" {% if edit_sentiment_review and edit_sentiment_review.sentiment_nb == 'POSITIF' %}selected{% endif %}>POSITIF</option>
+                  <option value="NEGATIF" {% if edit_sentiment_review and edit_sentiment_review.sentiment_nb == 'NEGATIF' %}selected{% endif %}>NEGATIF</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small text-muted">SVM</label>
+                <select name="sentiment_svm" class="form-select" required id="sentiment-review-edit-svm">
+                  <option value="POSITIF" {% if edit_sentiment_review and edit_sentiment_review.sentiment_svm == 'POSITIF' %}selected{% endif %}>POSITIF</option>
+                  <option value="NEGATIF" {% if edit_sentiment_review and edit_sentiment_review.sentiment_svm == 'NEGATIF' %}selected{% endif %}>NEGATIF</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt-3 mb-3">
+              <label class="form-label small text-muted">Source</label>
+              <input type="text" name="source" class="form-control" value="{{ edit_sentiment_review.source if edit_sentiment_review and edit_sentiment_review.source else 'Google Maps' }}" id="sentiment-review-edit-source">
+            </div>
+            <button type="button" class="btn btn-success js-async-submit-btn" id="sentiment-review-edit-submit" {% if not edit_sentiment_review %}disabled{% endif %}>
+              <i class="bi bi-save me-1"></i>Simpan Perubahan
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+  .admin-wrap .admin-hero {
+    border-radius: 18px;
+    color: #fff;
+    background: linear-gradient(135deg, #0d6efd, #0b5ed7 50%, #3b82f6);
+    box-shadow: 0 10px 24px rgba(13, 110, 253, 0.2);
+  }
+  .admin-wrap .stat-card,
+  .admin-wrap .table-card {
+    border-radius: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .admin-wrap .stat-card:hover,
+  .admin-wrap .table-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.8rem 1.4rem rgba(25, 35, 58, 0.12) !important;
+  }
+  .admin-wrap .tiny-progress {
+    height: 6px;
+    border-radius: 999px;
+  }
+  .admin-wrap .table thead th {
+    background-color: rgba(13, 110, 253, 0.06);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .admin-wrap .table td {
+    vertical-align: middle;
+  }
+  .admin-wrap .cell-text-wrap {
+    max-width: 320px;
+    line-height: 1.55;
+  }
+  .admin-wrap .cell-address {
+    color: inherit;
+    display: -webkit-box;
+    -webkit-line-clamp: 6;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: normal;
+    word-break: break-word;
+    min-width: 220px;
+  }
+  .admin-wrap .cell-code-wrap {
+    min-width: 260px;
+  }
+  .admin-wrap .cell-code {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    padding: 0.55rem 0.7rem;
+    border-radius: 0.6rem;
+    background: rgba(15, 23, 42, 0.06);
+    color: #1e3a5f;
+    white-space: normal;
+    word-break: break-all;
+    line-height: 1.45;
+    font-size: 0.86rem;
+    vertical-align: middle;
+  }
+  .admin-wrap .table-selector {
+    max-width: 320px;
+  }
+  .admin-wrap .admin-table-grid .table-link {
+    display: block;
+    border-color: rgba(13, 110, 253, 0.08) !important;
+    transition: all 0.2s ease;
+    min-height: 100%;
+  }
+  .admin-wrap .admin-table-list .table-link {
+    border-color: rgba(13, 110, 253, 0.08) !important;
+    transition: all 0.2s ease;
+  }
+  .admin-wrap .admin-table-grid .table-link:hover,
+  .admin-wrap .admin-table-list .table-link:hover {
+    transform: translateY(-1px);
+    border-color: rgba(13, 110, 253, 0.22) !important;
+  }
+  .admin-wrap .admin-table-grid .table-link.active,
+  .admin-wrap .admin-table-list .table-link.active {
+    background: rgba(13, 110, 253, 0.08);
+    border-color: rgba(13, 110, 253, 0.2) !important;
+    color: inherit;
+  }
+  .admin-wrap .action-cell {
+    white-space: nowrap;
+  }
+  .admin-wrap .direct-apply-note {
+    background: linear-gradient(180deg, rgba(255, 193, 7, 0.12), rgba(255, 193, 7, 0.06));
+    color: inherit;
+    line-height: 1.7;
+  }
+  [data-bs-theme="dark"] .admin-wrap .admin-hero {
+    background: linear-gradient(135deg, #162033, #0f172a 55%, #1d4ed8);
+    box-shadow: 0 16px 34px rgba(2, 6, 23, 0.4);
+  }
+  [data-bs-theme="dark"] .admin-wrap .table thead th {
+    background-color: rgba(96, 165, 250, 0.08);
+  }
+  [data-bs-theme="dark"] .admin-wrap .cell-code {
+    background: rgba(148, 163, 184, 0.12);
+    color: #dbeafe;
+  }
+  [data-bs-theme="dark"] .admin-wrap .stat-card:hover,
+  [data-bs-theme="dark"] .admin-wrap .table-card:hover {
+    box-shadow: 0 0.9rem 1.8rem rgba(2, 6, 23, 0.35) !important;
+  }
+  [data-bs-theme="dark"] .admin-wrap .admin-table-grid .table-link,
+  [data-bs-theme="dark"] .admin-wrap .admin-table-list .table-link {
+    border-color: rgba(148, 163, 184, 0.12) !important;
+  }
+  [data-bs-theme="dark"] .admin-wrap .admin-table-grid .table-link.active,
+  [data-bs-theme="dark"] .admin-wrap .admin-table-list .table-link.active {
+    background: rgba(96, 165, 250, 0.12);
+    border-color: rgba(96, 165, 250, 0.24) !important;
+  }
+  [data-bs-theme="dark"] .admin-wrap .direct-apply-note {
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.16), rgba(15, 23, 42, 0.32));
+  }
+  @media (max-width: 768px) {
+    .admin-wrap .admin-hero {
+      border-radius: 14px;
+    }
+    .admin-wrap .admin-hero .btn,
+    .admin-wrap .admin-hero .badge {
+      width: 100%;
+      justify-content: center;
+    }
+    .admin-wrap .table-selector {
+      max-width: 100%;
+    }
+    .admin-wrap .action-cell {
+      white-space: normal;
+    }
+    .admin-wrap .cell-text-wrap,
+    .admin-wrap .cell-code {
+      max-width: 100%;
+    }
+    .admin-wrap .cell-address,
+    .admin-wrap .cell-code-wrap {
+      min-width: 0;
+    }
+    .admin-wrap .direct-apply-note {
+      padding: 0.9rem 1rem;
+      font-size: 0.95rem;
+      line-height: 1.75;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    let isAdminWrapLoading = false;
+
+    function getFeedbackEl() {
+      return document.getElementById("admin-action-feedback");
+    }
+
+    function showFeedback(message, ok = true) {
+      const feedbackEl = getFeedbackEl();
+      if (!feedbackEl) return;
+      feedbackEl.className = `alert ${ok ? 'alert-success' : 'alert-danger'} mb-4`;
+      feedbackEl.textContent = message;
+      feedbackEl.classList.remove("d-none");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function loadAdminWrap(url, message = "", ok = true, pushState = false) {
+      if (isAdminWrapLoading) return;
+      isAdminWrapLoading = true;
+      try {
+        const response = await fetch(url, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+        const html = await response.text();
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const nextWrap = doc.querySelector(".admin-wrap");
+        const currentWrap = document.querySelector(".admin-wrap");
+        if (nextWrap && currentWrap) {
+          currentWrap.replaceWith(nextWrap);
+          if (pushState && window.location.href !== url) {
+            window.history.pushState({}, "", url);
+          }
+          if (message) {
+            showFeedback(message, ok);
+          }
+        } else {
+          window.location.reload();
+        }
+      } catch (error) {
+        showFeedback("Gagal memuat panel admin tanpa refresh penuh", false);
+      } finally {
+        isAdminWrapLoading = false;
+      }
+    }
+
+    async function refreshAdminWrap(message = "", ok = true) {
+      await loadAdminWrap(window.location.href, message, ok, false);
+    }
+
+    function submitAsyncNavForm(form) {
+      if (!form) return;
+      const url = new URL(form.action || window.location.href, window.location.origin);
+      const formData = new FormData(form);
+      for (const [key, value] of formData.entries()) {
+        url.searchParams.set(key, value);
+      }
+      loadAdminWrap(url.toString(), "", true, true);
+    }
+
+    async function submitAsyncForm(form, triggerButton = null) {
+      if (!form) return;
+
+      const confirmMessage = form.dataset.confirm;
+      if (confirmMessage && !window.confirm(confirmMessage)) return;
+
+      const submitButton = triggerButton || form.querySelector('.js-async-submit-btn, button[type="submit"]');
+      if (submitButton) submitButton.disabled = true;
+
+      try {
+        const response = await fetch(form.action, {
+          method: form.method || "POST",
+          body: new FormData(form),
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json"
+          }
+        });
+        const result = await response.json();
+        if (response.ok && result.ok !== false) {
+          applyAsyncResult({ action: form.action, triggerButton: submitButton, reset: () => form.reset() }, result);
+          showFeedback(result.msg || "Aksi selesai.", true);
+        } else {
+          showFeedback(result.msg || "Aksi gagal.", false);
+        }
+      } catch (error) {
+        showFeedback("Terjadi kesalahan saat memproses aksi admin.", false);
+      } finally {
+        if (submitButton) submitButton.disabled = false;
+      }
+    }
+
+    function formatIsoToInput(value) {
+      if (!value) return "";
+      return String(value).replace(" ", "T").slice(0, 16);
+    }
+
+    function buildHotelReviewRow(row) {
+      const reviewDate = row.review_date ? formatIsoToInput(row.review_date).replace("T", " ") : "-";
+      return `
+        <tr data-review-id="${row.review_id}">
+          <td class="ps-3 fw-semibold" data-col="review_id">${row.review_id ?? "-"}</td>
+          <td data-col="hotel_id">${row.hotel_id ?? "-"}</td>
+          <td data-col="user_name">${row.user_name ?? "-"}</td>
+          <td data-col="rating">${row.rating ?? "-"}</td>
+          <td data-col="review_text">${row.review_text ?? "-"}</td>
+          <td data-col="source">${row.source ?? "-"}</td>
+          <td data-col="review_date">${reviewDate}</td>
+          <td class="text-end pe-3 action-cell">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-primary js-edit-hotel-review"
+              title="Edit tanpa refresh"
+              data-review-id="${row.review_id}"
+              data-hotel-id="${row.hotel_id ?? ""}"
+              data-user-name="${row.user_name ?? ""}"
+              data-rating="${row.rating ?? ""}"
+              data-review-date="${formatIsoToInput(row.review_date)}"
+              data-source="${row.source ?? ""}"
+              data-review-text="${row.review_text ?? ""}"
+            >
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <form method="post" action="/admin/data/hotel-reviews/${row.review_id}/delete" class="d-inline js-async-form" data-confirm="Hapus review ini?">
+              <button type="button" class="btn btn-sm btn-outline-danger js-async-submit-btn">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+      `;
+    }
+
+    function buildSentimentReviewRow(row) {
+      const reviewDate = row.review_date ? formatIsoToInput(row.review_date).replace("T", " ") : "-";
+      return `
+        <tr data-sentiment-id="${row.sentiment_id}">
+          <td class="ps-3 fw-semibold" data-col="sentiment_id">${row.sentiment_id ?? "-"}</td>
+          <td data-col="review_id">${row.review_id ?? "-"}</td>
+          <td data-col="hotel_id">${row.hotel_id ?? "-"}</td>
+          <td data-col="user_name">${row.user_name ?? "-"}</td>
+          <td data-col="sentiment_nb">${row.sentiment_nb ?? "-"}</td>
+          <td data-col="sentiment_svm">${row.sentiment_svm ?? "-"}</td>
+          <td data-col="review_date">${reviewDate}</td>
+          <td class="text-end pe-3 action-cell">
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-primary js-edit-sentiment-review"
+              title="Edit tanpa refresh"
+              data-sentiment-id="${row.sentiment_id}"
+              data-review-id="${row.review_id ?? ""}"
+              data-sentiment-nb="${row.sentiment_nb ?? ""}"
+              data-sentiment-svm="${row.sentiment_svm ?? ""}"
+              data-source="${row.source ?? "Google Maps"}"
+            >
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <form method="post" action="/admin/data/sentiment-reviews/${row.sentiment_id}/delete" class="d-inline js-async-form" data-confirm="Hapus data sentimen?">
+              <button type="button" class="btn btn-sm btn-outline-danger js-async-submit-btn">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+      `;
+    }
+
+    function applyAsyncResult(form, result) {
+      const payload = result.payload || {};
+      const action = form.action;
+
+      if (action.includes("/hotels/") && action.includes("/toggle-active")) {
+        const row = document.querySelector(`tr[data-hotel-id="${payload.hotel_id}"]`);
+        if (!row) return;
+        const statusCell = row.querySelector('[data-col="is_active"]');
+        const toggleBtn = form.triggerButton || (form.querySelector ? form.querySelector(".js-async-action-btn, .js-async-submit-btn, button[type='submit']") : null);
+        if (statusCell) {
+          statusCell.innerHTML = `<span class="badge ${payload.is_active ? 'text-bg-success' : 'text-bg-secondary'}">${payload.is_active ? 'Aktif' : 'Nonaktif'}</span>`;
+        }
+        if (toggleBtn) {
+          toggleBtn.className = `btn btn-sm ${payload.is_active ? 'btn-outline-warning' : 'btn-outline-success'}`;
+          toggleBtn.innerHTML = `<i class="bi ${payload.is_active ? 'bi-pause-circle' : 'bi-play-circle'}"></i> ${payload.is_active ? 'Nonaktifkan' : 'Aktifkan'}`;
+        }
+        return;
+      }
+
+      if (action.includes("/hotels/") && action.includes("/delete")) {
+        document.querySelector(`tr[data-hotel-id="${payload.hotel_id}"]`)?.remove();
+        return;
+      }
+
+      if (action.includes("/hotel-reviews/") && action.includes("/delete")) {
+        document.querySelector(`tr[data-review-id="${payload.review_id}"]`)?.remove();
+        return;
+      }
+
+      if (action.includes("/sentiment-reviews/") && action.includes("/delete")) {
+        document.querySelector(`tr[data-sentiment-id="${payload.sentiment_id}"]`)?.remove();
+        return;
+      }
+
+      if (action.includes("/hotel-reviews/create") && payload.row) {
+        const tbody = document.querySelector("#reviewTableBody, .admin-wrap table tbody");
+        if (tbody) {
+          tbody.insertAdjacentHTML("afterbegin", buildHotelReviewRow(payload.row));
+        }
+        if (typeof form.reset === "function") form.reset();
+        return;
+      }
+
+      if (action.includes("/hotel-reviews/") && action.includes("/update") && payload.row) {
+        const existingRow = document.querySelector(`tr[data-review-id="${payload.row.review_id}"]`);
+        if (existingRow) {
+          existingRow.outerHTML = buildHotelReviewRow(payload.row);
+        }
+        return;
+      }
+
+      if (action.includes("/sentiment-reviews/create") && payload.row) {
+        const tbody = document.querySelector(".admin-wrap table tbody");
+        if (tbody) {
+          tbody.insertAdjacentHTML("afterbegin", buildSentimentReviewRow(payload.row));
+        }
+        if (typeof form.reset === "function") form.reset();
+        return;
+      }
+
+      if (action.includes("/sentiment-reviews/") && action.includes("/update") && payload.row) {
+        const existingRow = document.querySelector(`tr[data-sentiment-id="${payload.row.sentiment_id}"]`);
+        if (existingRow) {
+          existingRow.outerHTML = buildSentimentReviewRow(payload.row);
+        }
+      }
+    }
+
+    document.addEventListener("click", (event) => {
+      const refreshBtn = event.target.closest("#btn-refresh-admin-data");
+      if (refreshBtn) {
+        window.location.reload();
+        return;
+      }
+
+      const asyncActionBtn = event.target.closest(".js-async-action-btn");
+      if (asyncActionBtn) {
+        const confirmMessage = asyncActionBtn.dataset.confirm;
+        if (confirmMessage && !window.confirm(confirmMessage)) return;
+
+        const fakeForm = {
+          action: asyncActionBtn.dataset.action,
+          method: asyncActionBtn.dataset.method || "POST",
+          triggerButton: asyncActionBtn,
+        };
+
+        asyncActionBtn.disabled = true;
+        fetch(fakeForm.action, {
+          method: fakeForm.method,
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+            "Accept": "application/json"
+          }
+        })
+          .then((response) => response.json().then((result) => ({ response, result })))
+          .then(({ response, result }) => {
+            if (response.ok && result.ok !== false) {
+              applyAsyncResult(fakeForm, result);
+              showFeedback(result.msg || "Aksi selesai.", true);
+            } else {
+              showFeedback(result.msg || "Aksi gagal.", false);
+            }
+          })
+          .catch(() => {
+            showFeedback("Terjadi kesalahan saat memproses aksi admin.", false);
+          })
+          .finally(() => {
+            asyncActionBtn.disabled = false;
+          });
+        return;
+      }
+
+      const asyncNavLink = event.target.closest(".js-async-nav-link");
+      if (asyncNavLink) {
+        event.preventDefault();
+        loadAdminWrap(asyncNavLink.href, "", true, true);
+        return;
+      }
+
+      const asyncNavSubmitBtn = event.target.closest(".js-async-nav-submit");
+      if (asyncNavSubmitBtn) {
+        event.preventDefault();
+        submitAsyncNavForm(asyncNavSubmitBtn.closest("form"));
+        return;
+      }
+
+      const asyncSubmitBtn = event.target.closest(".js-async-submit-btn");
+      if (asyncSubmitBtn) {
+        event.preventDefault();
+        submitAsyncForm(asyncSubmitBtn.closest("form"), asyncSubmitBtn);
+        return;
+      }
+
+      const hotelEditButton = event.target.closest(".js-edit-hotel-review");
+      if (hotelEditButton) {
+        const form = document.getElementById("hotel-review-edit-form");
+        if (!form) return;
+        form.action = `/admin/data/hotel-reviews/${hotelEditButton.dataset.reviewId}/update`;
+        document.getElementById("hotel-review-edit-hotel-id").value = hotelEditButton.dataset.hotelId || "";
+        document.getElementById("hotel-review-edit-user-name").value = hotelEditButton.dataset.userName || "";
+        document.getElementById("hotel-review-edit-rating").value = hotelEditButton.dataset.rating || "";
+        document.getElementById("hotel-review-edit-date").value = hotelEditButton.dataset.reviewDate || "";
+        document.getElementById("hotel-review-edit-source").value = hotelEditButton.dataset.source || "Google Maps";
+        document.getElementById("hotel-review-edit-text").value = hotelEditButton.dataset.reviewText || "";
+        document.getElementById("hotel-review-edit-submit").disabled = false;
+        document.getElementById("hotel-review-edit").scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+
+      const sentimentEditButton = event.target.closest(".js-edit-sentiment-review");
+      if (sentimentEditButton) {
+        const form = document.getElementById("sentiment-review-edit-form");
+        if (!form) return;
+        form.action = `/admin/data/sentiment-reviews/${sentimentEditButton.dataset.sentimentId}/update`;
+        document.getElementById("sentiment-review-edit-review-id").value = sentimentEditButton.dataset.reviewId || "";
+        document.getElementById("sentiment-review-edit-nb").value = sentimentEditButton.dataset.sentimentNb || "POSITIF";
+        document.getElementById("sentiment-review-edit-svm").value = sentimentEditButton.dataset.sentimentSvm || "POSITIF";
+        document.getElementById("sentiment-review-edit-source").value = sentimentEditButton.dataset.source || "Google Maps";
+        document.getElementById("sentiment-review-edit-submit").disabled = false;
+        document.getElementById("sentiment-review-edit").scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+
+    document.addEventListener("change", (event) => {
+      const asyncNavSelect = event.target.closest(".js-async-nav-select");
+      if (!asyncNavSelect) return;
+      submitAsyncNavForm(asyncNavSelect.closest("form"));
+    });
+
+    document.addEventListener("submit", async (event) => {
+      const form = event.target;
+      if (form.classList.contains("js-async-nav-form")) {
+        event.preventDefault();
+        submitAsyncNavForm(form);
+        return;
+      }
+      if (!form.classList.contains("js-async-form")) return;
+      event.preventDefault();
+      submitAsyncForm(form);
+    });
+
+    window.addEventListener("popstate", () => {
+      loadAdminWrap(window.location.href, "", true, false);
+    });
+  });
+</script>
+{% endblock %}

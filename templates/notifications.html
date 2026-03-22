@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-2 notifications-page">
+  <div class="card border-0 shadow-sm mb-4 page-hero">
+    <div class="card-body p-4">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
+        <div>
+          <p class="page-eyebrow mb-2">Delivery Log</p>
+          <h3 class="fw-bold mb-2 d-flex align-items-center">
+            <i class="bi bi-bell text-primary me-2"></i> Notifications
+          </h3>
+          <p class="text-secondary mb-0">Pantau status pengiriman notifikasi review ke subscriber Telegram Bot</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="card border-0 shadow-sm mb-4 filter-card">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-lg-6">
+          <label class="form-label small text-secondary mb-1">Cari Notifikasi</label>
+          <input id="searchBox" type="text" class="form-control" placeholder="Cari review_id, telegram_id, status, waktu, atau isi review...">
+        </div>
+        <div class="col-md-9 col-lg-4 d-flex gap-2 flex-wrap align-items-end order-md-3 order-lg-2">
+          <button id="btnSearchNotif" class="btn btn-primary">
+            <i class="bi bi-search me-1"></i>Cari
+          </button>
+          <button id="btnResetNotif" class="btn btn-outline-secondary">
+            Reset
+          </button>
+          <span id="notifResultInfo" class="small text-muted align-self-center"></span>
+        </div>
+        <div class="col-md-3 col-lg-2 order-md-2 order-lg-3">
+          <label class="form-label small text-secondary mb-1 text-center w-100">Limit</label>
+          <select id="notifLimit" class="form-select">
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="150" selected>150</option>
+            <option value="0">All</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card border-0 shadow-sm overflow-hidden">
+    <div class="card-body p-0">
+      <div class="table-responsive notif-table-wrap">
+        <table class="table table-striped table-hover table-sm align-middle mb-0">
+          <thead class="table-light sticky-top">
+            <tr>
+              <th style="width:50px;">No</th>
+              <th style="width:110px;">Review ID</th>
+              <th style="width:160px;">Telegram ID</th>
+              <th style="width:110px;">Status</th>
+              <th style="width:130px;">Tanggal</th>
+              <th style="width:120px;">Jam</th>
+            </tr>
+          </thead>
+          <tbody id="notifTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .page-hero {
+    background: linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
+    border-radius: 1.25rem;
+  }
+  .page-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #0f5fd7;
+  }
+  .filter-card {
+    border-radius: 1rem;
+  }
+  .notif-table-wrap {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+  [data-bs-theme="dark"] .page-hero {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  }
+  [data-bs-theme="dark"] .page-eyebrow {
+    color: #93c5fd;
+  }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const tbody = document.getElementById("notifTableBody");
+  const searchBox = document.getElementById("searchBox");
+  const limitBox = document.getElementById("notifLimit");
+  const searchBtn = document.getElementById("btnSearchNotif");
+  const resetBtn = document.getElementById("btnResetNotif");
+  const resultInfo = document.getElementById("notifResultInfo");
+
+  function formatDateTime(rawTime) {
+    if (!rawTime) return { date: "-", time: "-" };
+    const clean = String(rawTime).replace("GMT", "").replace("T", " ").trim();
+
+    if (clean.includes("-")) {
+      const [datePart, timePart] = clean.split(" ");
+      return { date: datePart || "-", time: `${timePart || "-"} WIB` };
+    }
+
+    const parts = clean.split(" ");
+    const datePart = parts.slice(1, 4).join(" ");
+    const timePart = parts[4] ? `${parts[4]} WIB` : "-";
+    return { date: datePart || "-", time: timePart };
+  }
+
+  function renderTable(rows) {
+    if (!rows.length) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted fst-italic py-4">No notifications</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = rows.map((n, i) => {
+      const { date, time } = formatDateTime(n.created_at);
+      return `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${n.review_id ?? "-"}</td>
+          <td>${n.chat_id ?? "-"}</td>
+          <td>
+            ${n.status === 'sent'
+              ? '<span class="badge bg-success">Sent</span>'
+              : n.status === 'failed'
+              ? '<span class="badge bg-danger">Failed</span>'
+              : `<span class="badge bg-secondary">${n.status ?? '-'}</span>`}
+          </td>
+          <td><small class="text-muted">${date}</small></td>
+          <td><small class="text-muted">${time}</small></td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  async function runSearch() {
+    const limit = parseInt(limitBox.value || "150", 10);
+    const search = searchBox.value.trim();
+    try {
+      const res = await fetch(`/api/notifications?limit=${limit}&search=${encodeURIComponent(search)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const rows = await res.json();
+      renderTable(rows);
+      resultInfo.textContent = `${rows.length} data`;
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger fst-italic py-4">Gagal memuat notifikasi.</td></tr>`;
+      resultInfo.textContent = "Terjadi kesalahan";
+    }
+  }
+
+  await runSearch();
+
+  searchBtn.addEventListener("click", runSearch);
+  resetBtn.addEventListener("click", () => {
+    searchBox.value = "";
+    limitBox.value = "150";
+    runSearch();
+  });
+  limitBox.addEventListener("change", runSearch);
+  searchBox.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runSearch();
+    }
+  });
+});
+</script>
+{% endblock %}

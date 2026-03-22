@@ -1,0 +1,51 @@
+﻿<mxfile host="65bd71144e">
+    <diagram id="erd1" name="ERD">
+        <mxGraphModel dx="1088" dy="622" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="t_hotels" value="hotels\n- hotel_id (PK)\n- manajemen_hotel_id (UQ)\n- hotel_name\n- address\n- place_id (UQ)\n- created_at\n- scrape_interval_minutes\n- last_scrape_at\n- is_active" style="shape=table;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="80" width="260" height="220" as="geometry"/>
+                </mxCell>
+                <mxCell id="t_users" value="users\n- user_id (PK)\n- username (UQ)\n- password\n- role\n- created_at\n- hotel_id (FK)" style="shape=table;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="760" y="110" width="240" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="t_reviews" value="hotel_reviews\n- review_id (PK)\n- hotel_id (FK)\n- user_name\n- review_text\n- rating\n- review_date\n- source\n- created_at" style="shape=table;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="380" y="360" width="260" height="200" as="geometry"/>
+                </mxCell>
+                <mxCell id="t_sentiment" value="sentiment_reviews\n- sentiment_id (PK)\n- review_id (FK)\n- hotel_id (FK)\n- user_name\n- review_text\n- rating\n- review_date\n- sentiment_nb\n- sentiment_svm\n- source\n- created_at" style="shape=table;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="760" y="310" width="300" height="240" as="geometry"/>
+                </mxCell>
+                <mxCell id="t_telegram" value="telegram_users\n- chat_id (PK)\n- hotel_id (PK, FK)\n- subscribed\n- created_at" style="shape=table;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="360" width="240" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="t_notif" value="notifications\n- notif_id (PK)\n- review_id (FK, NULL)\n- chat_id (FK)\n- hotel_id (FK)\n- status\n- created_at" style="shape=table;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="60" y="600" width="260" height="170" as="geometry"/>
+                </mxCell>
+                <mxCell id="r1" value="1..N" style="endArrow=none;html=1;" edge="1" parent="1" source="t_hotels" target="t_users">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="r2" value="1..N" style="endArrow=none;html=1;" edge="1" parent="1" source="t_hotels" target="t_reviews">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="r3" value="1..N" style="endArrow=none;html=1;" edge="1" parent="1" source="t_hotels" target="t_sentiment">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="r4" value="1..N" style="endArrow=none;html=1;" edge="1" parent="1" source="t_hotels" target="t_telegram">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="r6" value="1..N" style="endArrow=none;html=1;" edge="1" parent="1" target="t_sentiment">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="640" y="430" as="sourcePoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="r7" value="1..0..N" style="dashed=1;endArrow=none;html=1;" edge="1" parent="1" source="t_reviews" target="t_notif">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="r8" value="1..N" style="endArrow=none;html=1;" edge="1" parent="1" source="t_telegram" target="t_notif">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

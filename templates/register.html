@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="auth-shell d-flex align-items-center justify-content-center">
+  <div class="auth-panel auth-panel-wide card border-0 shadow-sm">
+    <div class="card-body p-4 p-md-5">
+      <div class="text-center mb-4">
+        <div class="auth-icon mb-3"><i class="bi bi-person-plus-fill"></i></div>
+        <p class="auth-eyebrow mb-2">Create Account</p>
+        <h3 class="fw-bold mb-2">Buat Akun Baru</h3>
+        <p class="text-secondary mb-0">Daftarkan akun dan hotel untuk mulai memantau review secara otomatis</p>
+      </div>
+
+      {% if error %}
+      <div class="alert alert-danger py-2">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" action="{{ url_for('register_post') }}">
+        <div class="row g-3 register-grid">
+          <div class="col-12 register-field">
+            <label class="form-label fw-semibold">Username</label>
+            <div class="input-group input-group-lg">
+              <span class="input-group-text"><i class="bi bi-person"></i></span>
+              <input name="username" class="form-control" placeholder="Masukkan username" required>
+            </div>
+          </div>
+          <div class="col-12 register-field">
+            <label class="form-label fw-semibold">Password</label>
+            <div class="input-group input-group-lg">
+              <span class="input-group-text"><i class="bi bi-lock"></i></span>
+              <input name="password" type="password" class="form-control" placeholder="Masukkan password" required>
+            </div>
+          </div>
+          <div class="col-12 register-field">
+            <label class="form-label fw-semibold">Nama Hotel</label>
+            <div class="input-group input-group-lg">
+              <span class="input-group-text"><i class="bi bi-building"></i></span>
+              <input name="hotel_name" class="form-control" placeholder="Contoh: Aveta Hotel" required>
+            </div>
+          </div>
+          <div class="col-12 register-field">
+            <label class="form-label fw-semibold">Alamat Hotel</label>
+            <div class="input-group input-group-lg">
+              <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+              <input name="address" class="form-control" placeholder="Alamat hotel">
+            </div>
+          </div>
+          <div class="col-12 register-field">
+            <label class="form-label fw-semibold">Place ID / Link Google Maps</label>
+            <div class="input-group input-group-lg">
+              <span class="input-group-text"><i class="bi bi-pin-map"></i></span>
+              <input name="place_id" class="form-control" placeholder="Masukkan link Google Maps Hotel" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="register-actions mt-4">
+          <button class="btn btn-primary btn-lg px-4">
+            <i class="bi bi-person-check me-1"></i> Daftar
+          </button>
+          <a href="{{ url_for('login') }}" class="text-decoration-none">Kembali ke Login</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .auth-shell { min-height: calc(100vh - 210px); }
+  .auth-panel { width: min(100%, 480px); border-radius: 1.25rem; }
+  .auth-panel-wide { width: min(100%, 480px); }
+  .auth-icon {
+    width: 72px; height: 72px; margin: 0 auto; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(13, 110, 253, 0.08); color: #0d6efd; font-size: 2rem;
+  }
+  .auth-eyebrow {
+    font-size: .75rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: #0f5fd7;
+  }
+  .register-grid .form-label {
+    margin-bottom: .45rem;
+  }
+  .register-field .input-group-text {
+    min-width: 50px;
+    justify-content: center;
+  }
+  .register-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .auth-links { font-size: .92rem; }
+  [data-bs-theme="dark"] .auth-icon { background: rgba(96, 165, 250, 0.12); color: #93c5fd; }
+  [data-bs-theme="dark"] .auth-eyebrow { color: #93c5fd; }
+  @media (max-width: 576px) {
+    .auth-shell { min-height: auto; }
+    .auth-panel .card-body { padding: 1.1rem !important; }
+    .register-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .register-actions a {
+      text-align: center;
+    }
+  }
+</style>
+{% endblock %}

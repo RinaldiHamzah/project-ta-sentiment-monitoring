@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-2 analytics-page">
+  <div class="card border-0 shadow-sm mb-4 analytics-hero">
+    <div class="card-body p-4">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
+        <div>
+          <p class="analytics-eyebrow mb-2">Insight Overview</p>
+          <h3 class="fw-bold mb-2 d-flex align-items-center">
+            <i class="bi bi-bar-chart-line text-primary me-2"></i> Analytics
+          </h3>
+          <p class="text-secondary mb-0">
+            Pantau distribusi sentimen, rata-rata rating, dan tren review hotel secara visual
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-6 col-md-3">
+      <div class="card analytics-stat positive-stat border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="stat-icon"><i class="bi bi-hand-thumbs-up-fill"></i></div>
+          <h6 class="fw-bold mb-2">Total Positif</h6>
+          <h3 id="stat-positive" class="mb-0">0</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card analytics-stat negative-stat border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="stat-icon"><i class="bi bi-hand-thumbs-down-fill"></i></div>
+          <h6 class="fw-bold mb-2">Total Negatif</h6>
+          <h3 id="stat-negative" class="mb-0">0</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card analytics-stat rating-stat border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="stat-icon"><i class="bi bi-star-fill"></i></div>
+          <h6 class="fw-bold mb-2">Rata-rata Rating</h6>
+          <h3 id="stat-rating" class="mb-0">0.0</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card analytics-stat total-stat border-0 shadow-sm h-100">
+        <div class="card-body text-center">
+          <div class="stat-icon"><i class="bi bi-chat-left-text-fill"></i></div>
+          <h6 class="fw-bold mb-2">Total Reviews</h6>
+          <h3 id="stat-total" class="mb-0">0</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mt-4 g-3">
+    <div class="col-12 col-md-6">
+      <div class="card border-0 shadow-sm h-100 analytics-chart-card">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0 d-flex align-items-center">
+              <i class="bi bi-pie-chart-fill text-primary me-2"></i> Sentiment Distribution
+            </h6>
+            <span class="chart-label">Doughnut chart</span>
+          </div>
+          <div class="chart-box">
+            <canvas id="pieChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="card border-0 shadow-sm h-100 analytics-chart-card">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="fw-bold mb-0 d-flex align-items-center">
+              <i class="bi bi-graph-up-arrow text-primary me-2"></i> Daily Review Trend
+            </h6>
+            <span class="chart-label">Stacked bar</span>
+          </div>
+          <div class="chart-box">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .analytics-hero {
+    background: linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
+    border-radius: 1.25rem;
+  }
+  .analytics-hero .card-body {
+    padding-top: 1.75rem !important;
+    padding-bottom: 1.75rem !important;
+  }
+  .analytics-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #0f5fd7;
+  }
+  .analytics-stat {
+    border-radius: 1rem;
+  }
+  .analytics-stat .card-body {
+    padding: 1.25rem 1rem;
+  }
+  .analytics-stat h3 {
+    font-size: 2rem;
+    font-weight: 800;
+  }
+  .stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.85rem;
+    font-size: 1.2rem;
+  }
+  .positive-stat {
+    background: linear-gradient(180deg, rgba(25, 135, 84, 0.07), rgba(25, 135, 84, 0.14));
+  }
+  .positive-stat .stat-icon {
+    background: rgba(25, 135, 84, 0.14);
+    color: #198754;
+  }
+  .negative-stat {
+    background: linear-gradient(180deg, rgba(220, 53, 69, 0.07), rgba(220, 53, 69, 0.14));
+  }
+  .negative-stat .stat-icon {
+    background: rgba(220, 53, 69, 0.14);
+    color: #dc3545;
+  }
+  .rating-stat {
+    background: linear-gradient(180deg, rgba(255, 193, 7, 0.10), rgba(255, 193, 7, 0.18));
+  }
+  .rating-stat .stat-icon {
+    background: rgba(255, 193, 7, 0.18);
+    color: #a87400;
+  }
+  .total-stat {
+    background: linear-gradient(180deg, rgba(13, 202, 240, 0.08), rgba(13, 202, 240, 0.18));
+  }
+  .total-stat .stat-icon {
+    background: rgba(13, 202, 240, 0.18);
+    color: #0aa2c0;
+  }
+  .analytics-chart-card {
+    border-radius: 1rem;
+    min-height: 420px;
+  }
+  .chart-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(108, 117, 125, 0.12);
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .chart-box {
+    position: relative;
+    height: 320px;
+  }
+  [data-bs-theme="dark"] .analytics-hero {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  }
+  [data-bs-theme="dark"] .analytics-eyebrow {
+    color: #93c5fd;
+  }
+  [data-bs-theme="dark"] .positive-stat {
+    background: linear-gradient(180deg, rgba(34, 197, 94, 0.12), rgba(15, 23, 42, 0.78));
+  }
+  [data-bs-theme="dark"] .negative-stat {
+    background: linear-gradient(180deg, rgba(248, 113, 113, 0.12), rgba(15, 23, 42, 0.78));
+  }
+  [data-bs-theme="dark"] .rating-stat {
+    background: linear-gradient(180deg, rgba(250, 204, 21, 0.12), rgba(15, 23, 42, 0.78));
+  }
+  [data-bs-theme="dark"] .total-stat {
+    background: linear-gradient(180deg, rgba(56, 189, 248, 0.12), rgba(15, 23, 42, 0.78));
+  }
+  [data-bs-theme="dark"] .chart-label {
+    background: rgba(148, 163, 184, 0.12);
+    color: #cbd5e1;
+  }
+  @media (max-width: 768px) {
+    .analytics-hero .card-body {
+      padding: 1.1rem !important;
+    }
+    .analytics-stat h3 {
+      font-size: 1.5rem;
+    }
+    .analytics-stat h6 {
+      font-size: 0.92rem;
+    }
+    .analytics-chart-card {
+      min-height: 360px;
+    }
+    .chart-box {
+      height: 280px;
+    }
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+let pieChart = null;
+let trendChart = null;
+const isDarkMode = () => document.documentElement.getAttribute('data-bs-theme') === 'dark';
+const chartTextColor = () => isDarkMode() ? '#e5e7eb' : '#334155';
+const chartGridColor = () => isDarkMode() ? 'rgba(148,163,184,0.14)' : 'rgba(15,23,42,0.08)';
+
+async function loadAnalytics() {
+  try {
+    const sentimentRes = await fetch('{{ url_for("api_analytics_sentiment") }}');
+    const sentiment = await sentimentRes.json();
+
+    let pos = sentiment.find(x => x.label.toLowerCase().includes("posit"))?.value || 0;
+    let neg = sentiment.find(x => x.label.toLowerCase().includes("negat"))?.value || 0;
+    let total = pos + neg;
+
+    document.getElementById("stat-positive").textContent = pos;
+    document.getElementById("stat-negative").textContent = neg;
+    document.getElementById("stat-total").textContent = total;
+
+    try {
+      const ratingRes = await fetch('{{ url_for("api_analytics_rating") }}');
+      const ratingData = await ratingRes.json();
+      document.getElementById("stat-rating").textContent = ratingData.avg.toFixed(1);
+    } catch {
+      document.getElementById("stat-rating").textContent = "0.0";
+    }
+
+    if (pieChart) pieChart.destroy();
+
+    pieChart = new Chart(document.getElementById('pieChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ["Positif", "Negatif"],
+        datasets: [{
+          data: [pos, neg],
+          backgroundColor: ['#28a745', '#dc3545'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: chartTextColor() } },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                if (total === 0) return `${ctx.label}: 0`;
+                return `${ctx.label}: ${ctx.parsed} (${(ctx.parsed / total * 100).toFixed(1)}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const trendRes = await fetch('{{ url_for("api_analytics_trend") }}');
+    const trendData = await trendRes.json();
+
+    const labels = trendData.map(r => r.date);
+    const posVals = trendData.map(r => r.pos || 0);
+    const negVals = trendData.map(r => r.neg || 0);
+
+    if (trendChart) trendChart.destroy();
+
+    trendChart = new Chart(document.getElementById('trendChart'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: "Positif", data: posVals, backgroundColor: "#28a745" },
+          { label: "Negatif", data: negVals, backgroundColor: "#dc3545" }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'bottom', labels: { color: chartTextColor() } } },
+        scales: {
+          x: { stacked: true, ticks: { color: chartTextColor() }, grid: { color: chartGridColor() } },
+          y: { stacked: true, beginAtZero: true, ticks: { color: chartTextColor() }, grid: { color: chartGridColor() } }
+        }
+      }
+    });
+  } catch (err) {
+    console.error("Gagal memuat analytics:", err);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", loadAnalytics);
+window.addEventListener("themechange", loadAnalytics);
+</script>
+{% endblock %}

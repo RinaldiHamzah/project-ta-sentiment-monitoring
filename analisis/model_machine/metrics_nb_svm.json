@@ -1,0 +1,24 @@
+{
+  "nb": {
+    "alpha": 0.05,
+    "accuracy": 0.9172413793103448,
+    "precision_weighted": 0.950647251001365,
+    "recall_weighted": 0.9172413793103448,
+    "f1_weighted": 0.9275571192110311,
+    "f1_macro": 0.8034243824061056,
+    "balanced_accuracy": 0.9180021730272987,
+    "log_loss": 0.19717326342141714
+  },
+  "svm": {
+    "C": 1,
+    "accuracy": 0.960919540229885,
+    "precision_weighted": 0.9604605383189774,
+    "recall_weighted": 0.960919540229885,
+    "f1_weighted": 0.9606763830748554,
+    "f1_macro": 0.8728966501091422,
+    "balanced_accuracy": 0.8683281271220971,
+    "hinge_loss": 0.18395507439985398
+  },
+  "tfidf_vocab_size": 5123,
+  "smote": false
+}

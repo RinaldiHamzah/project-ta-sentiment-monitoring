@@ -1,0 +1,27 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Environment variables and local runtime artifacts
+.env
+.last_scrape_ts
+.last_scrape_ts.tmp
+
+# Tooling and editor folders
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+env/
+venv/
+.venv/
+.env
+__pycache__/

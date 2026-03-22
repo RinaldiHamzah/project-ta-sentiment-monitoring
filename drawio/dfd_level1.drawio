@@ -1,0 +1,148 @@
+﻿<mxfile host="65bd71144e">
+    <diagram id="dfd_level1" name="DFD Level 1">
+        <mxGraphModel dx="837" dy="1305" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="e_user" value="User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="120" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_admin" value="Admin" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="220" width="140" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_serp" value="Google Maps / SerpAPI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1f5fe;strokeColor=#039be5;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="420" width="200" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="e_telegram" value="Telegram Bot API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e8f5e9;strokeColor=#43a047;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="520" width="180" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="p1" value="1. Autentikasi &amp; Manajemen User" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="305" y="90" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="p2" value="2. Kelola Review (Scrape)" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="180" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="p3" value="3. Analisis Sentimen" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="460" y="270" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="p4" value="4. Notifikasi Telegram" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="390" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="p5" value="5. Dashboard &amp; Analytics" style="rounded=1;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="500" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="p6" value="6. Scheduler Control" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="320" y="-60" width="220" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="p7" value="7. Bot Control" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+                    <mxGeometry x="600" y="390" width="220" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="d_users" value="D1 Users" style="shape=database;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="60" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="d_hotels" value="D2 Hotels" style="shape=database;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="140" width="160" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="d_reviews" value="D3 Hotel Reviews" style="shape=database;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="230" width="180" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="d_sentiment" value="D4 Sentiment Reviews" style="shape=database;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="320" width="190" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="d_subs" value="D5 Telegram Users" style="shape=database;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="410" width="190" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="d_notif" value="D6 Notifications" style="shape=database;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+                    <mxGeometry x="900" y="500" width="190" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="f1" value="Login/Register" style="endArrow=block;html=1;" parent="1" source="e_user" target="p1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f2" value="Admin Access" style="endArrow=block;html=1;" parent="1" source="e_admin" target="p1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f3" value="Scrape Request" style="endArrow=block;html=1;" parent="1" source="e_user" target="p2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f3b" value="Scheduler Start/Stop" style="endArrow=block;html=1;" edge="1" parent="1" source="e_user" target="p6">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f4" value="Analytics Request" style="endArrow=block;html=1;" parent="1" source="e_user" target="p5" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f4b" value="Bot Start/Stop" style="endArrow=block;html=1;" edge="1" parent="1" source="e_admin" target="p7">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f5" value="Query Reviews" style="endArrow=block;html=1;" parent="1" source="p2" target="e_serp" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f6" value="Review Data" style="endArrow=block;html=1;" parent="1" source="e_serp" target="p2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f7" value="Send Notification" style="endArrow=block;html=1;" parent="1" source="p4" target="e_telegram" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f8" value="Delivery Status" style="endArrow=block;html=1;" parent="1" source="e_telegram" target="p4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f8b" value="Bot Status" style="endArrow=block;html=1;" edge="1" parent="1" source="p7" target="e_telegram">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f9" value="Raw Reviews" style="endArrow=block;html=1;" parent="1" source="p2" target="p3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f10" value="Sentiment Result" style="endArrow=block;html=1;" parent="1" source="p3" target="p4" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f11" value="Schedule Trigger" style="endArrow=block;html=1;" parent="1" source="p6" target="p2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f12" value="Read/Write" style="endArrow=block;html=1;" parent="1" source="p1" target="d_users" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f13" value="Read/Write" style="endArrow=block;html=1;" parent="1" source="p1" target="d_hotels" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f14" value="Save Raw Reviews" style="endArrow=block;html=1;" parent="1" source="p2" target="d_reviews" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f15" value="Read Raw Reviews" style="endArrow=block;html=1;" parent="1" source="p3" target="d_reviews" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f16" value="Save Sentiment" style="endArrow=block;html=1;" parent="1" source="p3" target="d_sentiment" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f17" value="Read Subscribers" style="endArrow=block;html=1;" parent="1" source="p4" target="d_subs" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f18" value="Log Notifications" style="endArrow=block;html=1;" parent="1" source="p4" target="d_notif" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f19" value="Read Analytics Data" style="endArrow=block;html=1;" parent="1" source="p5" target="d_reviews" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f20" value="Read Analytics Data" style="endArrow=block;html=1;" parent="1" source="p5" target="d_sentiment" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f21" value="Read Notifications" style="endArrow=block;html=1;" edge="1" parent="1" source="p5" target="d_notif">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f22" value="Dashboard Output" style="endArrow=block;html=1;" edge="1" parent="1" source="p5" target="e_user">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f23" value="Admin Reports" style="endArrow=block;html=1;" edge="1" parent="1" source="p5" target="e_admin">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f24" value="Scrape Status" style="endArrow=block;html=1;" edge="1" parent="1" source="p2" target="e_user">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f25" value="Scheduler Status" style="endArrow=block;html=1;" edge="1" parent="1" source="p6" target="e_user">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="f26" value="Bot Status" style="endArrow=block;html=1;" edge="1" parent="1" source="p7" target="e_admin">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="error-shell d-flex align-items-center justify-content-center">
+  <div class="error-panel card border-0 shadow-sm text-center">
+    <div class="card-body p-4 p-md-5">
+      <div class="error-icon mb-3"><i class="bi bi-exclamation-triangle-fill"></i></div>
+      <p class="error-eyebrow mb-2">System Notice</p>
+      <h1 class="display-6 fw-bold mb-2">{{ error_code or "Error" }}</h1>
+      <h5 class="mb-3">{{ error_message or "Something went wrong" }}</h5>
+      <p class="text-secondary mb-4">Halaman yang dicari mungkin tidak tersedia, dipindahkan atau mengalami gangguan sementara</p>
+      <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+        <i class="bi bi-house-door me-1"></i> Go Home
+      </a>
+    </div>
+  </div>
+</div>
+
+<style>
+  .error-shell { min-height: calc(100vh - 240px); }
+  .error-panel { width: min(100%, 620px); border-radius: 1.25rem; }
+  .error-icon {
+    width: 78px; height: 78px; margin: 0 auto; border-radius: 999px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(220, 53, 69, 0.10); color: #dc3545; font-size: 2rem;
+  }
+  .error-eyebrow {
+    font-size: .75rem; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: #c2410c;
+  }
+  [data-bs-theme="dark"] .error-icon { background: rgba(248, 113, 113, 0.12); color: #fca5a5; }
+  [data-bs-theme="dark"] .error-eyebrow { color: #fdba74; }
+  @media (max-width: 576px) {
+    .error-shell { min-height: auto; }
+    .error-panel .card-body { padding: 1.1rem !important; }
+  }
+</style>
+{% endblock %}

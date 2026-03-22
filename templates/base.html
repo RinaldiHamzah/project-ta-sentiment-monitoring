@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="id" data-bs-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{{ title or "Monitoring Dashboard" }}</title>
+  <script>
+    (() => {
+      const theme = localStorage.getItem("theme");
+      if (theme === "dark" || theme === "light") {
+        document.documentElement.setAttribute("data-bs-theme", theme);
+      }
+    })();
+  </script>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --app-surface: #ffffff;
+      --app-surface-soft: #f8fbff;
+      --app-border: rgba(15, 23, 42, 0.08);
+      --app-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      --app-muted: #64748b;
+    }
+
+    body {
+      background:
+        radial-gradient(circle at top left, rgba(13, 110, 253, 0.08), transparent 22%),
+        linear-gradient(180deg, #f4f7fb 0%, #edf2f8 100%);
+      color: #1f2937;
+      transition: background-color 0.35s ease, color 0.35s ease;
+    }
+
+    main.container {
+      width: min(1320px, calc(100% - 1.5rem));
+    }
+
+    .card,
+    .modal-content,
+    .table-responsive,
+    .list-group-item {
+      background: var(--app-surface);
+      border: 1px solid var(--app-border);
+      box-shadow: var(--app-shadow);
+    }
+
+    .table-light,
+    .table-light th {
+      background-color: #f5f7fb !important;
+    }
+
+    .form-control,
+    .form-select,
+    .input-group-text {
+      border-color: rgba(15, 23, 42, 0.1);
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+      border-color: rgba(13, 110, 253, 0.45);
+      box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.12);
+    }
+
+    .navbar.bg-primary {
+      background: linear-gradient(90deg, #1565f9, #1ba5f8);
+      box-shadow: 0 10px 30px rgba(21, 101, 249, 0.2);
+      transition: background 0.35s ease;
+    }
+
+    .navbar-nav .nav-link {
+      transition: background-color 0.25s, color 0.25s;
+      border-radius: 8px;
+      padding: 8px 12px;
+    }
+
+    .navbar-nav .nav-link:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
+    .navbar-nav .nav-link.active {
+      background-color: rgba(255, 255, 255, 0.25);
+      font-weight: 600;
+    }
+
+    .user-greeting {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+      color: white;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+      transition: transform 0.3s, box-shadow 0.3s;
+      min-width: 180px;
+    }
+
+    .user-greeting:hover {
+      transform: scale(1.03);
+      box-shadow: 0 4px 14px rgba(0, 242, 254, 0.3);
+    }
+
+    .user-greeting small {
+      font-size: 0.8rem;
+      font-weight: 400;
+    }
+
+    .logout-link {
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .logout-link:hover {
+      text-decoration: underline;
+    }
+
+    #scrollTopBtn {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      display: none;
+      z-index: 1050;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    #scrollTopBtn:hover {
+      transform: scale(1.1);
+    }
+
+    footer {
+      background: linear-gradient(135deg, #64748b, #334155) !important;
+    }
+
+    footer a {
+      text-decoration: none;
+    }
+
+    .site-footer {
+      margin-top: 3rem;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr .95fr;
+      gap: 1.5rem;
+      align-items: center;
+    }
+
+    .footer-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      min-width: 0;
+    }
+
+    .footer-brand img {
+      flex-shrink: 0;
+    }
+
+    .footer-copy {
+      color: rgba(255, 255, 255, 0.86);
+      line-height: 1.6;
+    }
+
+    .footer-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.45rem;
+    }
+
+    .footer-contact,
+    .footer-social {
+      text-align: center;
+    }
+
+    .footer-contact a,
+    .footer-social a {
+      color: #fff;
+    }
+
+    .footer-social-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.8rem;
+    }
+
+    .footer-social-links a {
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.12);
+      transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+
+    .footer-social-links a:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    [data-bs-theme="dark"] {
+      --app-surface: #111827;
+      --app-surface-soft: #182132;
+      --app-border: rgba(148, 163, 184, 0.14);
+      --app-shadow: 0 14px 35px rgba(2, 6, 23, 0.45);
+      --app-muted: #94a3b8;
+    }
+
+    [data-bs-theme="dark"] body {
+      background:
+        radial-gradient(circle at top left, rgba(96, 165, 250, 0.12), transparent 24%),
+        linear-gradient(180deg, #09111f 0%, #0f172a 100%);
+      color: #e5e7eb;
+    }
+
+    [data-bs-theme="dark"] .navbar.bg-primary {
+      background: linear-gradient(90deg, #0f172a, #162033);
+    }
+
+    [data-bs-theme="dark"] .card,
+    [data-bs-theme="dark"] .modal-content,
+    [data-bs-theme="dark"] .table-responsive,
+    [data-bs-theme="dark"] .list-group-item {
+      background: var(--app-surface);
+      border-color: var(--app-border);
+      box-shadow: var(--app-shadow);
+    }
+
+    [data-bs-theme="dark"] .table {
+      --bs-table-bg: transparent;
+      --bs-table-striped-bg: rgba(148, 163, 184, 0.05);
+      --bs-table-hover-bg: rgba(96, 165, 250, 0.08);
+      --bs-table-color: #e5e7eb;
+      --bs-table-border-color: rgba(148, 163, 184, 0.14);
+    }
+
+    [data-bs-theme="dark"] .table-light,
+    [data-bs-theme="dark"] .table-light th {
+      background-color: #182132 !important;
+      color: #e5e7eb !important;
+      border-color: rgba(148, 163, 184, 0.14) !important;
+    }
+
+    [data-bs-theme="dark"] .text-muted,
+    [data-bs-theme="dark"] .text-secondary,
+    [data-bs-theme="dark"] small,
+    [data-bs-theme="dark"] .small {
+      color: var(--app-muted) !important;
+    }
+
+    [data-bs-theme="dark"] .form-control,
+    [data-bs-theme="dark"] .form-select,
+    [data-bs-theme="dark"] .input-group-text {
+      background: #0f172a;
+      color: #e5e7eb;
+      border-color: rgba(148, 163, 184, 0.14);
+    }
+
+    [data-bs-theme="dark"] .form-control::placeholder {
+      color: #94a3b8;
+    }
+
+    [data-bs-theme="dark"] .btn-outline-primary {
+      color: #93c5fd;
+      border-color: rgba(147, 197, 253, 0.45);
+    }
+
+    [data-bs-theme="dark"] .btn-outline-primary:hover {
+      background: rgba(59, 130, 246, 0.18);
+      border-color: rgba(147, 197, 253, 0.55);
+      color: #e5f0ff;
+    }
+
+    [data-bs-theme="dark"] .alert-info {
+      background: rgba(59, 130, 246, 0.14);
+      border-color: rgba(96, 165, 250, 0.25);
+      color: #dbeafe;
+    }
+
+    [data-bs-theme="dark"] footer {
+      background: linear-gradient(135deg, #111827, #0f172a) !important;
+    }
+
+    html, body, .navbar, .card, .table, footer {
+      transition: background-color 0.35s ease, color 0.35s ease;
+    }
+
+    @media (max-width: 768px) {
+      .user-greeting {
+        min-width: 100%;
+        margin-top: 0.5rem;
+        text-align: center;
+      }
+
+      .site-footer {
+        padding-top: 1.3rem !important;
+        padding-bottom: 1.3rem !important;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 1.2rem;
+        text-align: center;
+      }
+
+      .footer-brand {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-social-links {
+        gap: 0.7rem;
+      }
+    }
+  </style>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="d-flex flex-column min-vh-100">
+  {% set role = (session.get('role') or '').lower() %}
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container-fluid">
+      {% set hotel_obj = hotel|default(None) %}
+      <a class="navbar-brand" href="{{ url_for('admin_dashboard') if role == 'admin' else url_for('dashboard') }}">
+        {% if role == 'admin' %}
+        <i class="bi bi-shield-lock"></i> Admin
+        {% else %}
+        <i class="bi bi-building"></i> {{ hotel_obj.hotel_name if hotel_obj and hotel_obj.hotel_name else "Monitoring" }}
+        {% endif %}
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="mainNav">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          {% if role == 'admin' %}
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='admin_dashboard' %}active{% endif %}" href="{{ url_for('admin_dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='admin_data_management' %}active{% endif %}" href="{{ url_for('admin_data_management') }}"><i class="bi bi-database-gear"></i> Management</a></li>
+          {% elif role == 'user' %}
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='analytics_page' %}active{% endif %}" href="{{ url_for('analytics_page') }}"><i class="bi bi-graph-up"></i> Analytic</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='subscribers_page' %}active{% endif %}" href="{{ url_for('subscribers_page') }}"><i class="bi bi-people"></i> Subscriber</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='notifications_page' %}active{% endif %}" href="{{ url_for('notifications_page') }}"><i class="bi bi-bell"></i> Notification</a></li>
+          <li class="nav-item"><a class="nav-link {% if request.endpoint=='reviews_page' %}active{% endif %}" href="{{ url_for('reviews_page') }}"><i class="bi bi-chat-left-text"></i> History</a></li>
+          {% endif %}
+        </ul>
+
+        <ul class="navbar-nav ms-auto align-items-center">
+          {% if role == 'user' and session.get('uid') and hotels_for_selector and hotels_for_selector|length > 1 %}
+          <li class="nav-item me-3">
+            <form method="post" action="{{ url_for('set_active_hotel') }}" class="d-flex align-items-center">
+              <input type="hidden" name="next" value="{{ request.full_path if request.query_string else request.path }}">
+              <select name="hotel_id" class="form-select form-select-sm" onchange="this.form.submit()" aria-label="Pilih hotel aktif">
+                {% for h in hotels_for_selector %}
+                  <option value="{{ h.hotel_id }}" {% if h.hotel_id == active_hotel_id %}selected{% endif %}>
+                    {{ h.hotel_name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </form>
+          </li>
+          {% endif %}
+
+          <li class="nav-item me-3">
+            <i id="themeToggle" class="bi bi-moon-fill fs-5" role="button" title="Toggle Dark Mode"></i>
+          </li>
+
+          {% if session.get('uid') %}
+          <li class="nav-item d-flex align-items-center me-3">
+            <div class="user-greeting px-3 py-2 rounded-3">
+              <div>
+                <i class="bi bi-person-circle me-1"></i>
+                <span id="greeting">Hi</span>, <strong>{{ session.uname }}</strong>
+              </div>
+              <small id="clock" class="mt-1 d-block"></small>
+            </div>
+          </li>
+          <li class="nav-item"><a class="nav-link logout-link" href="{{ url_for('logout') }}">Logout</a></li>
+          {% else %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container py-4 flex-grow-1">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="alert alert-info shadow-sm">
+          {% for m in messages %}{{ m }}<br>{% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer text-white py-4 mt-5">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <img src="{{ url_for('static', filename='img/smartreview.jpg') }}"
+             alt="Logo Smart Review"
+             width="60" height="60"
+             class="rounded-circle border border-white shadow-sm"
+             style="object-fit: cover; aspect-ratio: 1 / 1;">
+        <div class="footer-copy">
+          <h6 class="footer-title mb-1">MONITORING</h6>
+          <small class="d-block">Platform Sentiment Monitoring Review</small>
+          <small class="d-block">
+            © {{ current_year or 2026 }}
+            <a href="/" class="text-light text-decoration-none">monitoring.id</a>
+          </small>
+        </div>
+      </div>
+
+      <div class="footer-contact">
+        <h6 class="footer-title"><i class="bi bi-headset me-1"></i> Call Center</h6>
+        <div><a href="tel:+6281374131407" class="text-white text-decoration-none">+62 813 7413 1407</a></div>
+        <small>Gmail: <a href="mailto:rinaldihamzah37@gmail.com" class="text-white text-decoration-underline">rinaldihamzah37@gmail.com</a></small>
+      </div>
+
+      <div class="footer-social">
+        <h6 class="footer-title mb-2">Follow us</h6>
+        <div class="footer-social-links">
+          <a href="https://x.com/RinaldiHamzah3" target="_blank" aria-label="X"><i class="bi bi-x fs-5"></i></a>
+          <a href="https://www.youtube.com/@Rinaldi.Hamzah" target="_blank" aria-label="YouTube"><i class="bi bi-youtube fs-5"></i></a>
+          <a href="https://www.facebook.com/RinaldiHamzah" target="_blank" aria-label="Facebook"><i class="bi bi-facebook fs-5"></i></a>
+          <a href="https://www.instagram.com/rinaldihamzah_" target="_blank" aria-label="Instagram"><i class="bi bi-instagram fs-5"></i></a>
+          <a href="https://github.com/RinaldiHamzah" target="_blank" aria-label="GitHub"><i class="bi bi-github fs-5"></i></a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <button id="scrollTopBtn" class="btn btn-primary rounded-circle">
+    <i class="bi bi-arrow-up"></i>
+  </button>
+
+  <script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const html = document.documentElement;
+    const toggle = document.getElementById("themeToggle");
+    const scrollBtn = document.getElementById("scrollTopBtn");
+
+    if (localStorage.getItem("theme") === "dark") {
+      html.setAttribute("data-bs-theme", "dark");
+      toggle.classList.replace("bi-moon-fill", "bi-sun-fill");
+    }
+
+    toggle.addEventListener("click", () => {
+      const isDark = html.getAttribute("data-bs-theme") === "dark";
+      const nextTheme = isDark ? "light" : "dark";
+      html.setAttribute("data-bs-theme", nextTheme);
+      localStorage.setItem("theme", nextTheme);
+      toggle.classList.replace(isDark ? "bi-sun-fill" : "bi-moon-fill", isDark ? "bi-moon-fill" : "bi-sun-fill");
+      window.dispatchEvent("CustomEvent" in window ? new CustomEvent("themechange", { detail: { theme: nextTheme } }) : new Event("themechange"));
+    });
+
+    function updateGreeting() {
+      const now = new Date();
+      const h = now.getHours();
+      let greet = "Halo";
+      if (h >= 5 && h < 12) greet = "Selamat Pagi";
+      else if (h >= 12 && h < 15) greet = "Selamat Siang";
+      else if (h >= 15 && h < 18) greet = "Selamat Sore";
+      else greet = "Selamat Malam";
+      document.getElementById("greeting").textContent = greet;
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      const dateStr = now.toLocaleDateString('id-ID', options);
+      const timeStr = now.toLocaleTimeString('id-ID');
+      document.getElementById("clock").textContent = `${dateStr}, ${timeStr}`;
+    }
+
+    updateGreeting();
+    updateClock();
+    setInterval(updateClock, 1000);
+    setInterval(updateGreeting, 60000);
+
+    window.addEventListener("scroll", () => {
+      scrollBtn.style.display = window.scrollY > 300 ? "block" : "none";
+    });
+    scrollBtn.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  });
+  </script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-2 subscribers-page">
+  <div class="card border-0 shadow-sm mb-4 page-hero">
+    <div class="card-body p-4">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
+        <div>
+          <p class="page-eyebrow mb-2">Telegram Subscriber</p>
+          <h3 class="fw-bold mb-2 d-flex align-items-center">
+            <i class="bi bi-people text-primary me-2"></i> Subscribers
+          </h3>
+          <p class="text-secondary mb-0">Kelola subscriber Telegram Bot dan kontrol bot untuk hotel aktif</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body text-center p-4">
+          <h6 class="mb-3 fw-bold"><i class="bi bi-robot me-1"></i> Tambah Telegram ID Otomatis</h6>
+          <div id="botStatus" class="mb-3 fs-6 fw-semibold text-danger">Bot Stopped</div>
+          <div class="d-flex justify-content-center gap-2 mb-3">
+            <button id="btnStart" class="btn btn-success" onclick="startBot()">
+              <i class="bi bi-play-fill me-1"></i> Start
+            </button>
+            <button id="btnStop" class="btn btn-danger" onclick="stopBot()" disabled>
+              <i class="bi bi-stop-fill me-1"></i> Stop
+            </button>
+          </div>
+          <hr class="my-3">
+          <p class="small text-muted mb-0">
+            <b>Telegram ID</b> adalah nomor unik akun yang dipakai Telegram Bot untuk mengirim notifikasi otomatis dan 
+            menpatkan Telegram ID tersebut dengan mengetik <b>/start {{ active_hotel_id or (hotel.hotel_id if hotel else '-') }}</b> pada Telegram Bot
+          </p>
+          <div class="mt-3">
+            <a href="https://web.telegram.org/k/?swfix=1#@Update_Ulasan_bot" target="_blank" class="btn btn-outline-primary btn-sm">
+              <i class="bi bi-telegram me-1"></i> Buka monitoringbot
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <h6 class="mb-3 fw-bold"><i class="bi bi-person-plus me-1"></i> Tambah Telegram ID</h6>
+          <form method="post" action="{{ url_for('subscribers_add') }}">
+            <div class="input-group">
+              <input type="text" name="chat_id" class="form-control" placeholder="Telegram ID" required>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Tambah
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="card shadow-sm border-0 mt-3">
+        <div class="card-body p-4">
+          <h6 class="mb-3 fw-bold"><i class="bi bi-list-ul me-1"></i> Daftar Subscribers</h6>
+          <div class="table-responsive">
+            <table class="table align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Telegram ID</th>
+                  <th>Tanggal Subscribe</th>
+                  <th>Tindakan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for s in subs %}
+                <tr id="row-{{ s.chat_id }}">
+                  <td>{{ s.chat_id }}</td>
+                  <td>{{ "{} WIB".format(s.created_at.strftime("%d-%m-%Y %H:%M:%S")) if s.created_at else "-" }}</td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteSub('{{ s.chat_id }}')">
+                      <i class="bi bi-trash me-1"></i> Hapus
+                    </button>
+                  </td>
+                </tr>
+                {% else %}
+                <tr>
+                  <td colspan="3" class="text-center text-muted fst-italic py-4">Belum ada subscriber</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .page-hero {
+    background: linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%);
+    border-radius: 1.25rem;
+  }
+  .page-eyebrow {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #0f5fd7;
+  }
+  [data-bs-theme="dark"] .page-hero {
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
+  }
+  [data-bs-theme="dark"] .page-eyebrow {
+    color: #93c5fd;
+  }
+</style>
+
+<script>
+function setLoading(button, loading = true) {
+  button.disabled = loading;
+  if (loading) {
+    button.dataset.oldText = button.innerHTML;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Processing...';
+  } else {
+    button.innerHTML = button.dataset.oldText;
+  }
+}
+
+function startBot() {
+  let btn = document.getElementById("btnStart");
+  setLoading(btn, true);
+  fetch("/bot/start", { method: "POST" })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        document.getElementById("botStatus").innerHTML = "Bot is Running";
+        document.getElementById("botStatus").classList.replace("text-danger", "text-success");
+        document.getElementById("btnStop").disabled = false;
+      } else {
+        alert("Warning: " + d.msg);
+      }
+    })
+    .finally(() => setLoading(btn, false));
+}
+
+function stopBot() {
+  let btn = document.getElementById("btnStop");
+  setLoading(btn, true);
+  fetch("/bot/stop", { method: "POST" })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        document.getElementById("botStatus").innerHTML = "Bot Stopped";
+        document.getElementById("botStatus").classList.replace("text-success", "text-danger");
+        document.getElementById("btnStop").disabled = true;
+      } else {
+        alert("Warning: " + d.msg);
+      }
+    })
+    .finally(() => setLoading(btn, false));
+}
+
+function deleteSub(chat_id) {
+  fetch(`/api/subscribers/${chat_id}`, { method: "DELETE" })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        document.getElementById("row-" + chat_id).remove();
+      } else {
+        alert("Gagal: " + d.msg);
+      }
+    });
+}
+</script>
+{% endblock %}

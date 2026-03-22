@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-3 admin-wrap">
+  <div class="admin-hero p-4 p-lg-5 mb-4">
+    <div class="d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
+      <div>
+        <h4 class="fw-bold mb-2">
+          <i class="bi bi-shield-lock me-2"></i>Dashboard
+        </h4>
+        <p class="mb-0 opacity-75">Panel Sistem untuk Admin</p>
+      </div>
+      <div class="d-flex gap-2 align-items-center flex-wrap">
+        <span id="bot-status-badge" class="badge rounded-pill text-bg-secondary px-3 py-2">
+          <i class="bi bi-robot me-1"></i>Bot: checking...
+        </span>
+        <span class="badge rounded-pill text-bg-dark px-3 py-2">Admin</span>
+        <button id="btn-refresh-admin" class="btn btn-light btn-sm">
+          <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <div class="small text-muted mb-2">Total Hotel</div>
+          <div class="fs-4 fw-bold stat-value" data-target="{{ data.total_hotels }}">0</div>
+          {% set pct_hotel = ((data.active_hotels * 100) // data.total_hotels) if data.total_hotels else 0 %}
+          <div class="small mb-1">Aktif: {{ data.active_hotels }}</div>
+          <div class="progress tiny-progress">
+            <div class="progress-bar bg-primary" style="width: {{ pct_hotel }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <div class="small text-muted mb-2">Total User</div>
+          <div class="fs-4 fw-bold stat-value" data-target="{{ data.total_users }}">0</div>
+          {% set pct_admin = ((data.total_admins * 100) // data.total_users) if data.total_users else 0 %}
+          <div class="small mb-1">Admin: {{ data.total_admins }} | User: {{ data.total_regular_users }}</div>
+          <div class="progress tiny-progress">
+            <div class="progress-bar bg-info" style="width: {{ pct_admin }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <div class="small text-muted mb-2">Total Review</div>
+          <div class="fs-4 fw-bold stat-value" data-target="{{ data.total_reviews }}">0</div>
+          {% set pct_sent = ((data.total_sentiments * 100) // data.total_reviews) if data.total_reviews else 0 %}
+          <div class="small mb-1">Sentimen: {{ data.total_sentiments }}</div>
+          <div class="progress tiny-progress">
+            <div class="progress-bar bg-success" style="width: {{ pct_sent }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-6">
+      <div class="card border-0 shadow-sm h-100 stat-card">
+        <div class="card-body">
+          <div class="small text-muted mb-2">Notifikasi & Subscriber</div>
+          <div class="fs-4 fw-bold stat-value" data-target="{{ data.total_notifications }}">0</div>
+          {% set pct_sub = ((data.total_subscribers * 100) // data.total_notifications) if data.total_notifications else 0 %}
+          <div class="small mb-1">Subscriber aktif: {{ data.total_subscribers }}</div>
+          <div class="progress tiny-progress">
+            <div class="progress-bar bg-warning" style="width: {{ pct_sub if pct_sub <= 100 else 100 }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-7">
+      <div class="card border-0 shadow-sm h-100 table-card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <strong>Hotel Review Terbanyak</strong>
+          <span class="small text-muted">Top 8</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr>
+                  <th class="ps-3">Hotel</th>
+                  <th>ID</th>
+                  <th class="text-end pe-3">Total Review</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if data.top_hotels %}
+                  {% for h in data.top_hotels %}
+                  <tr>
+                    <td class="ps-3 fw-semibold">{{ h.hotel_name }}</td>
+                    <td><span class="badge text-bg-light border">#{{ h.hotel_id }}</span></td>
+                    <td class="text-end pe-3">
+                      <span class="badge text-bg-primary">{{ h.review_count }}</span>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td colspan="3" class="text-center py-4 text-muted">Belum ada data hotel</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card border-0 shadow-sm h-100 table-card">
+        <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+          <strong>User Terbaru</strong>
+          <span class="small text-muted">Last 8</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead>
+                <tr>
+                  <th class="ps-3">Username</th>
+                  <th>Role</th>
+                  <th class="pe-3">Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if data.recent_users %}
+                  {% for u in data.recent_users %}
+                  <tr>
+                    <td class="ps-3 fw-semibold">{{ u.username }}</td>
+                    <td>
+                      <span class="badge {{ 'text-bg-primary' if u.role == 'admin' else 'text-bg-secondary' }}">{{ u.role }}</span>
+                    </td>
+                    <td class="pe-3">{{ u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else '-' }}</td>
+                  </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr><td colspan="3" class="text-center py-4 text-muted">Belum ada data user</td></tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .admin-wrap .admin-hero {
+    border-radius: 18px;
+    color: #fff;
+    background: linear-gradient(135deg, #0d6efd, #0b5ed7 50%, #3b82f6);
+    box-shadow: 0 10px 24px rgba(13, 110, 253, 0.2);
+  }
+  .admin-wrap .stat-card,
+  .admin-wrap .table-card {
+    border-radius: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .admin-wrap .stat-card:hover,
+  .admin-wrap .table-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.8rem 1.4rem rgba(25, 35, 58, 0.12) !important;
+  }
+  .admin-wrap .tiny-progress {
+    height: 6px;
+    border-radius: 999px;
+  }
+  .admin-wrap .table thead th {
+    background-color: rgba(13, 110, 253, 0.06);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+  [data-bs-theme="dark"] .admin-wrap .admin-hero {
+    background: linear-gradient(135deg, #162033, #0f172a 55%, #1d4ed8);
+    box-shadow: 0 16px 34px rgba(2, 6, 23, 0.4);
+  }
+  [data-bs-theme="dark"] .admin-wrap .table thead th {
+    background-color: rgba(96, 165, 250, 0.08);
+  }
+  [data-bs-theme="dark"] .admin-wrap .stat-card:hover,
+  [data-bs-theme="dark"] .admin-wrap .table-card:hover {
+    box-shadow: 0 0.9rem 1.8rem rgba(2, 6, 23, 0.35) !important;
+  }
+  @media (max-width: 768px) {
+    .admin-wrap .admin-hero {
+      border-radius: 14px;
+    }
+    .admin-wrap .admin-hero .btn,
+    .admin-wrap .admin-hero .badge {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const values = document.querySelectorAll(".stat-value");
+    values.forEach((el) => {
+      const target = Number(el.dataset.target || "0");
+      let current = 0;
+      const step = Math.max(1, Math.ceil(target / 24));
+      const timer = setInterval(() => {
+        current += step;
+        if (current >= target) {
+          el.textContent = target.toLocaleString("id-ID");
+          clearInterval(timer);
+          return;
+        }
+        el.textContent = current.toLocaleString("id-ID");
+      }, 24);
+    });
+
+    const badge = document.getElementById("bot-status-badge");
+    fetch("{{ url_for('bot_status') }}")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.running) {
+          badge.classList.remove("text-bg-secondary");
+          badge.classList.add("text-bg-success");
+          badge.innerHTML = '<i class="bi bi-robot me-1"></i>Bot';
+        } else {
+          badge.classList.remove("text-bg-secondary");
+          badge.classList.add("text-bg-warning");
+          badge.innerHTML = '<i class="bi bi-robot me-1"></i>Bot';
+        }
+      })
+      .catch(() => {
+        badge.classList.remove("text-bg-secondary");
+        badge.classList.add("text-bg-danger");
+        badge.innerHTML = '<i class="bi bi-robot me-1"></i>Bot: error';
+      });
+
+    const refreshBtn = document.getElementById("btn-refresh-admin");
+    refreshBtn.addEventListener("click", () => window.location.reload());
+  });
+</script>
+{% endblock %}

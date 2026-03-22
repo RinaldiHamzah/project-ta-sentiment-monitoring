@@ -1,0 +1,715 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid py-2 dashboard-page">
+  <div class="card border-0 shadow-sm mb-4 dashboard-hero">
+    <div class="card-body p-4">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center gap-3">
+        <div>
+          <p class="dashboard-eyebrow mb-2">Monitoring Overview</p>
+          <h3 class="fw-bold mb-2 d-flex align-items-center">
+            <i class="bi bi-speedometer2 text-primary me-2"></i> Dashboard
+          </h3>
+          <p class="text-secondary mb-0">Ringkasan review, sentimen dan tren performa hotel</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="dashboard-pill"><i class="bi bi-building me-1"></i>{{ hotel.hotel_name }}</span>
+          <span class="dashboard-pill"><i class="bi bi-chat-left-text me-1"></i>{{ total_reviews or 0 }} reviews</span>
+          <span class="dashboard-pill"><i class="bi bi-star-fill text-warning me-1"></i>{{ "%.1f"|format(avg_rating or 0) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-4 dashboard-card">
+    <div class="card-body">
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-3 gap-3">
+        <div>
+          <h6 class="fw-bold mb-1 d-flex align-items-center">
+            <i class="bi bi-clock-history text-primary me-2"></i> Auto Scheduler
+          </h6>
+          <p class="small text-secondary mb-0">Jalankan scraping review otomatis dengan interval</p>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap align-items-center gap-2 scheduler-controls">
+        <div class="input-group input-group-sm scheduler-input-wrap">
+          <input type="number" id="sched-interval" class="form-control text-center" value="15" min="1">
+          <span class="input-group-text">Menit</span>
+        </div>
+        <button id="btn-start-sched" class="btn btn-success btn-sm sched-btn">
+          <i class="bi bi-play-fill me-1"></i> Start
+        </button>
+        <button id="btn-stop-sched" class="btn btn-danger btn-sm sched-btn" disabled>
+          <i class="bi bi-stop-fill me-1"></i> Stop
+        </button>
+        <span id="sched-countdown-badge" class="badge bg-secondary px-3 py-2 ms-auto">
+          <i class="bi bi-hourglass-split me-1"></i>00:00
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100 position-relative overflow-hidden dashboard-card hotel-card">
+        <img src="{{ url_for('static', filename='img/hotel.jpg') }}" class="w-100 h-100 hotel-img" alt="{{ hotel.hotel_name }}">
+        <div class="position-absolute bottom-0 start-0 end-0 p-3 hotel-overlay">
+          <h5 class="fw-bold text-white mb-1">
+            {{ hotel.hotel_name }}
+            <a href="https://avetahotelmalioboro.com/" target="_blank" class="text-info ms-1"><i class="bi bi-box-arrow-up-right"></i></a>
+          </h5>
+          <p class="text-light small mb-2"><i class="bi bi-geo-alt me-1"></i>{{ hotel.address }}</p>
+          <div class="d-flex align-items-center text-warning fw-bold mb-2">
+            <span class="fs-4">{{ "%.1f"|format(avg_rating or 0) }}</span>
+            <span class="ms-2"><i class="bi bi-star-fill"></i></span>
+            <span class="text-white small ms-2">({{ total_reviews or 0 }} Reviews)</span>
+          </div>
+          <div class="text-white small">
+            {% for star in range(5,0,-1) %}
+            <div class="d-flex align-items-center mb-1">
+              <div class="rating-label">{{ star }}</div>
+              <div class="progress flex-grow-1 rating-progress">
+                <div class="progress-bar bg-warning" role="progressbar" data-width="{{ rating_dist[star]|default(0) }}" aria-valuenow="{{ rating_dist[star]|default(0) }}" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+              <div class="rating-percent">{{ rating_dist[star]|default(0) }}%</div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100 rounded-4 bg-body-tertiary">
+        <div class="card-body">
+          <h6 class="fw-bold mb-3 d-flex align-items-center">
+            <i class="bi bi-chat-dots me-2 text-bold"></i> Latest Reviews
+          </h6>
+          {% if latest %}
+          <div class="reviews-container">
+            {% for r in latest %}
+            <div class="review-item mb-3 p-3 rounded-4 shadow-sm border bg-body-secondary text-body">
+              <p class="fw-bold mb-2 d-flex align-items-center review-user">
+                <i class="bi bi-person-circle text-primary me-1"></i>{{ r.user_name }}
+              </p>
+              <div class="review-text small mb-2 text-body-secondary">
+                <i class="bi bi-pencil-square me-1 text-secondary"></i>
+                {{ (r.review_text if r.review_text and r.review_text.strip() else '(None)')|e }}
+              </div>
+              <div class="small mb-1 review-meta">
+                <i class="bi bi-star-fill text-warning me-1"></i>{{ r.rating }} / 5
+              </div>
+              <div class="small mb-1 review-meta">
+                <i class="bi bi-clock me-1"></i>{{ r.review_date.strftime("%d-%m-%Y %H:%M:%S") if r.review_date else 'Unknown' }} WIB
+              </div>
+              <div class="small mb-1 review-meta">
+                <i class="bi bi-globe me-1"></i>{{ r.source }}
+              </div>
+              <div class="review-footer">
+                <div class="review-badges d-flex flex-wrap gap-2">
+                  <span class="badge {% if r.sentiment_nb == 'POSITIF' %}bg-success{% elif r.sentiment_nb == 'NEGATIF' %}bg-danger{% else %}bg-secondary{% endif %}">NB: {{ r.sentiment_nb }}</span>
+                  <span class="badge {% if r.sentiment_svm == 'POSITIF' %}bg-success{% elif r.sentiment_svm == 'NEGATIF' %}bg-danger{% else %}bg-secondary{% endif %}">SVM: {{ r.sentiment_svm }}</span>
+                </div>
+                <hr class="my-2 opacity-50">
+                <div class="small sentiment-explanation">
+                  {% if r.sentiment_nb == 'POSITIF' and r.sentiment_svm == 'POSITIF' %}
+                    <strong></strong> Review dinilai <b>POSITIF</b> oleh kedua model
+                  {% elif r.sentiment_nb == 'NEGATIF' and r.sentiment_svm == 'NEGATIF' %}
+                    <strong></strong> Review dinilai <b>NEGATIF</b> oleh kedua model
+                  {% elif r.sentiment_nb != r.sentiment_svm %}
+                    <strong></strong> Hasil model berbeda, perlu tinjauan manual
+                  {% else %}
+                    <strong></strong> Sentimen tidak dapat ditentukan
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="text-center text-muted fst-italic mb-0">Belum ada review untuk ditampilkan</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0 h-100 dashboard-card">
+        <div class="card-body d-flex flex-column justify-content-between">
+          <div>
+            <h6 class="fw-bold mb-3 d-flex align-items-center">
+              <i class="bi bi-emoji-smile me-2 text-primary"></i> Sentiment Overview
+            </h6>
+
+            <div class="row text-center mb-3 g-2">
+              <div class="col">
+                <span class="badge bg-success px-3 py-2 w-100 summary-badge">
+                  <i class="bi bi-hand-thumbs-up me-1"></i>{{ counts.POSITIF or 0 }} POSITIF
+                </span>
+              </div>
+              <div class="col">
+                <span class="badge bg-danger px-3 py-2 w-100 summary-badge">
+                  <i class="bi bi-hand-thumbs-down me-1"></i>{{ counts.NEGATIF or 0 }} NEGATIF
+                </span>
+              </div>
+            </div>
+
+            {% set total = (counts.POSITIF or 0) + (counts.NEGATIF or 0) %}
+            {% set pos_percent = ((counts.POSITIF or 0) * 100 // total) if total > 0 else 0 %}
+            {% set neg_percent = ((counts.NEGATIF or 0) * 100 // total) if total > 0 else 0 %}
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between fw-semibold small mb-2">
+                <span>POSITIF {{ pos_percent }}%</span>
+                <span>NEGATIF {{ neg_percent }}%</span>
+              </div>
+              <div class="progress sentiment-progress">
+                <div class="progress-bar bg-success" role="progressbar" data-width="{{ pos_percent }}"></div>
+                <div class="progress-bar bg-danger" role="progressbar" data-width="{{ neg_percent }}"></div>
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold mb-0 d-flex align-items-center">
+                <i class="bi bi-bar-chart-line-fill text-primary me-2"></i> Perbandingan Mingguan
+              </h6>
+              <span class="mini-label">7 hari</span>
+            </div>
+            <canvas id="weeklyChart" height="120"></canvas>
+            <p class="small mt-3 mb-0">
+              {% if weekly.this_week > weekly.last_week %}
+                <span class="text-success fw-semibold"><i class="bi bi-graph-up-arrow me-1"></i>Review meningkat dibanding minggu lalu</span>
+              {% elif weekly.this_week < weekly.last_week %}
+                <span class="text-success fw-semibold"><i class="bi bi-graph-down-arrow me-1"></i>Review menurun dibanding minggu lalu</span>
+              {% else %}
+                <span class="text-success fw-semibold"><i class="bi bi-dash-lg me-1"></i>Review stabil dibanding minggu lalu</span>
+              {% endif %}
+            </p>
+          </div>
+          <div class="summary-total text-center mt-2 pt-2 border-top border-light-subtle">
+            <span class="small text-secondary d-block mb-1">Total Minggu Ini</span>
+            <h6 class="semi-bold mb-0">{{ weekly.this_week or 0 }} Reviews</h6>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-4 dashboard-card compact-analytics-card">
+    <div class="card-body compact-card-body">
+      <div class="d-flex justify-content-between align-items-center flex-wrap mb-2 gap-2">
+        <div class="mb-1">
+          <h6 class="fw-bold mb-0 d-flex align-items-center">
+            <i class="bi bi-graph-up-arrow text-primary me-2"></i> Trend Review Mingguan
+          </h6>
+        </div>
+        <span class="mini-label mb-1">7 hari</span>
+      </div>
+      <div class="trend-panel">
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-4 dashboard-card compact-analytics-card">
+    <div class="card-body compact-card-body">
+      <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+        <div class="mb-1">
+          <h6 class="fw-bold mb-0 d-flex align-items-center">
+            <i class="bi bi-keyboard text-primary me-2"></i> Keyword Analysis
+          </h6>
+        </div>
+        <ul class="nav nav-pills nav-sm" id="keywordTabs" role="tablist">
+          <li class="nav-item">
+            <button class="nav-link active" id="list-tab" data-bs-toggle="tab" data-bs-target="#list-view" type="button" role="tab">
+              <i class="bi bi-list-ul"></i> List View
+            </button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="cloud-tab" data-bs-toggle="tab" data-bs-target="#cloud-view" type="button" role="tab">
+              <i class="bi bi-cloud"></i> Word Cloud
+            </button>
+          </li>
+        </ul>
+      </div>
+      <div class="tab-content mt-1">
+        <div class="tab-pane fade show active" id="list-view" role="tabpanel">
+          <div class="row g-2">
+            <div class="col-md-6">
+              <div class="keyword-column keyword-column-positive">
+                <div class="keyword-column-head">
+                  <h6 class="text-success mb-0 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-emoji-smile me-1"></i> Keywords Positif
+                  </h6>
+                  <span class="keyword-count text-success"><span id="count-pos">0</span> kata</span>
+                </div>
+                <ul id="pos-keywords" class="list-unstyled keyword-list mb-0"></ul>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="keyword-column keyword-column-negative">
+                <div class="keyword-column-head">
+                  <h6 class="text-danger mb-0 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-emoji-frown me-1"></i> Keywords Negatif
+                  </h6>
+                  <span class="keyword-count text-danger"><span id="count-neg">0</span> kata</span>
+                </div>
+                <ul id="neg-keywords" class="list-unstyled keyword-list mb-0"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade text-center" id="cloud-view" role="tabpanel">
+          <div class="row justify-content-center g-2">
+            <div class="col-md-6">
+              <div class="cloud-card cloud-card-positive">
+                <h6 class="text-success mb-1 d-flex align-items-center justify-content-center">
+                  <i class="bi bi-cloud-arrow-up-fill me-1"></i> Word Cloud Positif
+                </h6>
+                <div class="p-1 border rounded-3 bg-light-subtle shadow-sm">
+                  <div id="wordCloudPositive" class="word-cloud-box"></div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="cloud-card cloud-card-negative">
+                <h6 class="text-danger mb-1 d-flex align-items-center justify-content-center">
+                  <i class="bi bi-cloud-arrow-down-fill me-1"></i> Word Cloud Negatif
+                </h6>
+                <div class="p-1 border rounded-3 bg-light-subtle shadow-sm">
+                  <div id="wordCloudNegative" class="word-cloud-box"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .dashboard-hero { background: linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%); border-radius: 1.25rem; }
+    .dashboard-eyebrow { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #0f5fd7; }
+    .dashboard-pill { display: inline-flex; align-items: center; padding: .6rem .9rem; border-radius: 999px; background: rgba(13,110,253,.08); color: #1e3a5f; font-weight: 600; font-size: .9rem; }
+    .dashboard-card { border-radius: 1rem; }
+    .mini-label { display: inline-flex; align-items: center; padding: .28rem .62rem; border-radius: 999px; background: rgba(108,117,125,.12); color: var(--bs-secondary-color); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .scheduler-input-wrap { max-width: 160px; }
+    .sched-btn { min-width: 84px; }
+    .hotel-card { min-height: 410px; }
+    .hotel-img { object-fit: cover; filter: brightness(65%); }
+    .hotel-overlay { background: linear-gradient(to top, rgba(7,18,43,.88), rgba(7,18,43,.18)); }
+    .rating-label { width: 28px; }
+    .rating-progress { height: 8px; }
+    .rating-percent { width: 45px; text-align: right; }
+    .summary-badge { font-size: .85rem; font-weight: 700; border-radius: .8rem; }
+    .sentiment-progress { height: 14px; border-radius: 7px; }
+    .summary-total { background: linear-gradient(180deg, rgba(13,110,253,.02), rgba(13,110,253,.08)); border-radius: .9rem; padding: .35rem 0 .45rem; }
+    .compact-card-body { padding: .9rem 1rem !important; }
+    .reviews-container { max-height: 320px; min-height: 410px; overflow-y: auto; padding: 10px 6px 10px 10px; display: flex; flex-direction: column; background: #e8edf3; border-radius: 14px; }
+    .reviews-container::-webkit-scrollbar { width: 6px; }
+    .reviews-container::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,.2); border-radius: 10px; }
+    .review-item { background-color: transparent; border-radius: 10px; padding: 8px 10px; transition: all .2s ease-in-out; overflow: visible; display: flex; flex-direction: column; min-height: 0; height: auto; box-shadow: none !important; border-color: transparent !important; }
+    .reviews-container > .review-item:last-child { margin-bottom: 0 !important; }
+    .reviews-container > .review-item:only-child { flex: 1; }
+    .review-item:hover { background-color: var(--bs-primary-bg-subtle); transform: translateY(-2px); }
+    .review-user, .review-meta, .sentiment-explanation { word-break: break-word; overflow-wrap: anywhere; }
+    .review-text { display: block; word-break: break-word; overflow-wrap: anywhere; line-height: 1.6; white-space: normal; }
+    .review-footer { margin-top: .55rem; padding-top: .2rem; }
+    .sentiment-explanation { line-height: 1.5; }
+    .review-item .badge { font-size: .75rem; padding: 4px 8px; white-space: normal; }
+    .trend-panel { padding: .75rem .9rem .45rem; border-radius: .85rem; background: linear-gradient(180deg, rgba(13,110,253,.03), rgba(13,110,253,.01)); border: 1px solid rgba(13,110,253,.06); }
+    .keyword-column { height: 100%; padding: .65rem; border-radius: .85rem; border: 1px solid rgba(148,163,184,.16); background: linear-gradient(180deg, rgba(248,250,252,.8), rgba(241,245,249,.55)); }
+    .keyword-column-positive { box-shadow: inset 0 0 0 1px rgba(25,135,84,.06); }
+    .keyword-column-negative { box-shadow: inset 0 0 0 1px rgba(220,53,69,.06); }
+    .keyword-column-head { display: flex; flex-direction: column; align-items: center; gap: .1rem; margin-bottom: .45rem; }
+    .keyword-count { display: inline-flex; align-items: center; justify-content: center; padding: .2rem .52rem; border-radius: 999px; background: rgba(255,255,255,.8); font-size: .7rem; font-weight: 700; }
+    .keyword-list li { display: flex; align-items: center; justify-content: space-between; background: var(--bs-tertiary-bg); padding: 6px 9px; margin-bottom: 5px; border-radius: 9px; transition: all .2s ease-in-out; cursor: pointer; color: var(--bs-body-color); font-size: .84rem; border: 1px solid transparent; }
+    .keyword-list li:hover { transform: translateX(3px); background: var(--bs-primary-bg-subtle); }
+    .cloud-card { padding: .8rem; border-radius: .85rem; background: linear-gradient(180deg, rgba(248,250,252,.75), rgba(241,245,249,.55)); border: 1px solid rgba(148,163,184,.16); height: 100%; }
+    .word-cloud-box { width: 100%; height: 220px; display: block; position: relative; }
+    .chart-container { position: relative; width: 100%; aspect-ratio: 16 / 9; min-height: 165px; }
+    [data-bs-theme="dark"] .dashboard-hero { background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%); }
+    [data-bs-theme="dark"] .dashboard-eyebrow { color: #93c5fd; }
+    [data-bs-theme="dark"] .dashboard-pill { background: rgba(96, 165, 250, .12); color: #dbeafe; }
+    [data-bs-theme="dark"] .mini-label { background: rgba(148, 163, 184, .12); color: #cbd5e1; }
+    [data-bs-theme="dark"] .summary-total { background: linear-gradient(180deg, rgba(59, 130, 246, .08), rgba(15, 23, 42, .35)); }
+    [data-bs-theme="dark"] .reviews-container { background: #182132; }
+    [data-bs-theme="dark"] .review-item { background-color: transparent !important; }
+    [data-bs-theme="dark"] .review-item:hover { background-color: rgba(59, 130, 246, .12) !important; }
+    [data-bs-theme="dark"] .trend-panel { background: linear-gradient(180deg, rgba(59,130,246,.06), rgba(15,23,42,.18)); border-color: rgba(96,165,250,.12); }
+    [data-bs-theme="dark"] .keyword-column,
+    [data-bs-theme="dark"] .cloud-card { background: linear-gradient(180deg, rgba(30,41,59,.72), rgba(15,23,42,.62)); border-color: rgba(148, 163, 184, .14); }
+    [data-bs-theme="dark"] .keyword-count { background: rgba(15,23,42,.72); }
+    [data-bs-theme="dark"] .keyword-list li { background: rgba(148, 163, 184, .08); border-color: rgba(148,163,184,.08); }
+    [data-bs-theme="dark"] #cloud-tooltip { background: rgba(15, 23, 42, .95) !important; color: #e5e7eb !important; border: 1px solid rgba(148, 163, 184, .16); }
+    [data-bs-theme="dark"] #cloud-view .border { border-color: rgba(148, 163, 184, .14) !important; }
+    [data-bs-theme="dark"] #cloud-view .bg-light-subtle { background: rgba(15, 23, 42, .72) !important; }
+    @media (max-width: 576px) {
+      .dashboard-hero .card-body { padding: 1.1rem !important; }
+      .dashboard-pill { width: 100%; justify-content: center; }
+      #sched-countdown-badge { flex: 1; text-align: center; font-size: .85rem; color: var(--bs-body-bg); }
+      .scheduler-controls, .scheduler-input-wrap { width: 100%; max-width: 100%; }
+      .sched-btn { flex: 1; }
+      .chart-container { aspect-ratio: 4 / 3; min-height: 200px; }
+      .hotel-card { min-height: 390px; }
+      .reviews-container { max-height: none !important; min-height: 0 !important; overflow: visible !important; padding: 10px 2px 10px 10px !important; display: block !important; }
+      .reviews-container > .review-item:only-child { flex: 0 0 auto; }
+      .review-item { padding: 12px !important; min-height: 0; height: auto !important; overflow: visible; }
+      .review-text { padding-right: 0; }
+      .review-footer { margin-top: .7rem; }
+      .trend-panel,
+      .keyword-column,
+      .cloud-card { padding: .8rem; }
+      .keyword-column-head { margin-bottom: .6rem; }
+      .word-cloud-box { height: 190px; }
+      .chart-container { min-height: 185px; }
+    }
+  </style>
+</div>
+
+<div id="weekly-data" data-last-week="{{ weekly.last_week or 0 }}" data-this-week="{{ weekly.this_week or 0 }}" hidden></div>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-cloud/build/d3.layout.cloud.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const isDarkMode = () => document.documentElement.getAttribute('data-bs-theme') === 'dark';
+  const chartTextColor = () => isDarkMode() ? '#e5e7eb' : '#334155';
+  const chartGridColor = () => isDarkMode() ? 'rgba(148,163,184,0.14)' : 'rgba(0,0,0,0.05)';
+
+  const cloudTooltip = (() => {
+    const el = document.createElement('div');
+    el.id = 'cloud-tooltip';
+    el.style.position = 'fixed';
+    el.style.zIndex = '2000';
+    el.style.pointerEvents = 'none';
+    el.style.padding = '6px 8px';
+    el.style.borderRadius = '8px';
+    el.style.background = 'rgba(0, 0, 0, 0.78)';
+    el.style.color = '#fff';
+    el.style.fontSize = '12px';
+    el.style.whiteSpace = 'nowrap';
+    el.style.display = 'none';
+    document.body.appendChild(el);
+    return el;
+  })();
+
+  document.querySelectorAll(".progress-bar[data-width]").forEach((el) => {
+    const width = parseFloat(el.dataset.width || "0");
+    el.style.width = `${Math.max(0, Math.min(100, width))}%`;
+  });
+
+  const countdownBadge = document.getElementById('sched-countdown-badge');
+  const inputEl = document.getElementById('sched-interval');
+  const btnStart = document.getElementById('btn-start-sched');
+  const btnStop = document.getElementById('btn-stop-sched');
+  let countdownTimer = null;
+  let remainingSeconds = 0;
+
+  function secondsToMMSS(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  function startCountdown(seconds) {
+    clearInterval(countdownTimer);
+    remainingSeconds = seconds;
+    updateCountdownUI();
+    countdownTimer = setInterval(() => {
+      remainingSeconds--;
+      if (remainingSeconds <= 0) {
+        clearInterval(countdownTimer);
+        countdownBadge.innerHTML = '<i class="bi bi-arrow-repeat me-1"></i>Refreshing...';
+        loadTrend();
+        getSchedulerStatus();
+      } else {
+        updateCountdownUI();
+      }
+    }, 1000);
+  }
+
+  function updateCountdownUI() {
+    countdownBadge.innerHTML = `<i class="bi bi-hourglass-split me-1"></i>${secondsToMMSS(remainingSeconds)}`;
+  }
+
+  function setRunningUI(running, minutes = null, remaining = null) {
+    if (running) {
+      inputEl.disabled = true;
+      btnStart.disabled = true;
+      btnStop.disabled = false;
+      startCountdown(remaining ? remaining : (minutes * 60));
+    } else {
+      inputEl.disabled = false;
+      btnStart.disabled = false;
+      btnStop.disabled = true;
+      clearInterval(countdownTimer);
+      countdownBadge.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>00:00';
+    }
+  }
+
+  btnStart.addEventListener('click', async () => {
+    const minutes = parseInt(inputEl.value) || 15;
+    const res = await fetch('{{ url_for("api_sched_start") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ minutes })
+    });
+    const d = await res.json();
+    if (d.ok) setRunningUI(true, minutes, d.remaining || null);
+    else alert("Gagal memulai scheduler");
+  });
+
+  btnStop.addEventListener('click', async () => {
+    const res = await fetch('{{ url_for("api_sched_stop") }}', { method: 'POST' });
+    const d = await res.json();
+    if (d.ok) setRunningUI(false);
+    else alert("Gagal menghentikan scheduler");
+  });
+
+  async function getSchedulerStatus() {
+    try {
+      const res = await fetch('{{ url_for("api_sched_status") }}');
+      const d = await res.json();
+      if (d.running) setRunningUI(true, d.interval, d.remaining);
+      else setRunningUI(false);
+    } catch (err) { console.error("sched status error", err); }
+  }
+
+  let cachedPosKeywords = [];
+  let cachedNegKeywords = [];
+
+  async function loadKeywords(renderCloud = false) {
+    try {
+      const res = await fetch('/api/analytics/keywords?limit=0');
+      const d = await res.json();
+      if (!d.ok) return;
+
+      const pos = d.positive || [];
+      const neg = d.negative || [];
+      cachedPosKeywords = pos;
+      cachedNegKeywords = neg;
+
+      const posList = document.getElementById('pos-keywords');
+      const negList = document.getElementById('neg-keywords');
+      posList.innerHTML = '';
+      negList.innerHTML = '';
+
+      pos.slice(0, 10).forEach(item => {
+        const score = typeof item.score === 'number' ? item.score.toFixed(3) : item.score;
+        posList.innerHTML += `<li title="TF-IDF: ${score}" data-word="${escapeHtml(item.word)}"><span><i class="bi bi-check-circle-fill text-success me-2"></i>${escapeHtml(item.word)}</span><span class="text-muted">(${item.count})</span></li>`;
+      });
+      neg.slice(0, 10).forEach(item => {
+        const score = typeof item.score === 'number' ? item.score.toFixed(3) : item.score;
+        negList.innerHTML += `<li title="TF-IDF: ${score}" data-word="${escapeHtml(item.word)}"><span><i class="bi bi-x-circle-fill text-danger me-2"></i>${escapeHtml(item.word)}</span><span class="text-muted">(${item.count})</span></li>`;
+      });
+
+      document.getElementById('count-pos').textContent = pos.length;
+      document.getElementById('count-neg').textContent = neg.length;
+
+      [posList, negList].forEach((list) => {
+        list.querySelectorAll('li[data-word]').forEach((li) => {
+          li.addEventListener('click', () => {
+            const word = li.dataset.word || '';
+            if (!word) return;
+            window.location.href = `/reviews?q=${encodeURIComponent(word)}`;
+          });
+        });
+      });
+
+      if (renderCloud) generateWordCloud(cachedPosKeywords, cachedNegKeywords);
+    } catch (err) {
+      console.error("Failed to load keywords", err);
+    }
+  }
+
+  function generateWordCloud(pos, neg) {
+    renderD3Cloud('wordCloudPositive', pos, 'Tidak ada data positif.');
+    renderD3Cloud('wordCloudNegative', neg, 'Tidak ada data negatif.');
+  }
+
+  function renderD3Cloud(containerId, items, emptyText) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const width = container.clientWidth || 420;
+    const height = container.clientHeight || 300;
+    if (container.clientWidth === 0 || container.clientHeight === 0) {
+      setTimeout(() => renderD3Cloud(containerId, items, emptyText), 120);
+      return;
+    }
+    container.innerHTML = '';
+    if (!items || items.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'text-muted small d-flex align-items-center justify-content-center w-100 h-100';
+      empty.textContent = emptyText;
+      container.appendChild(empty);
+      return;
+    }
+
+    const words = items.slice(0, 140).map((w) => ({
+      text: String(w.word || ''),
+      value: Number(w.count) || 1,
+      score: typeof w.score === 'number' ? w.score : Number(w.score) || 0
+    })).filter((w) => w.text);
+
+    const values = words.map(w => w.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const sizeScale = d3.scaleLinear().domain([min, max]).range([12, 56]);
+    const palette = ['#1d4ed8','#0f766e','#16a34a','#059669','#ca8a04','#d97706','#b91c1c','#be123c','#7c3aed','#2563eb','#0284c7','#0f172a'];
+
+    d3.layout.cloud()
+      .size([width, height])
+      .words(words)
+      .padding(2)
+      .rotate(() => (Math.random() < 0.12 ? 90 : 0))
+      .font('Poppins, sans-serif')
+      .fontSize(d => sizeScale(d.value))
+      .on('end', (data) => {
+        const svg = d3.select(container).append('svg').attr('width', width).attr('height', height).attr('viewBox', `0 0 ${width} ${height}`);
+        const group = svg.append('g').attr('transform', `translate(${width / 2}, ${height / 2})`);
+        group.selectAll('text').data(data).enter().append('text')
+          .style('font-family', 'Poppins, sans-serif')
+          .style('font-weight', 700)
+          .style('fill', (d) => palette[Math.abs(d.text.split('').reduce((a, c) => a * 31 + c.charCodeAt(0), 0)) % palette.length])
+          .style('cursor', 'pointer')
+          .attr('text-anchor', 'middle')
+          .attr('transform', d => `translate(${d.x}, ${d.y}) rotate(${d.rotate})`)
+          .style('font-size', d => `${d.size}px`)
+          .text(d => d.text)
+          .on('mousemove', (event, d) => {
+            cloudTooltip.textContent = `${d.text} (${d.value}) • TF-IDF ${d.score.toFixed(3)}`;
+            cloudTooltip.style.left = `${event.clientX + 12}px`;
+            cloudTooltip.style.top = `${event.clientY + 12}px`;
+            cloudTooltip.style.display = 'block';
+          })
+          .on('mouseleave', () => { cloudTooltip.style.display = 'none'; })
+          .on('click', (event, d) => { window.location.href = `/reviews?q=${encodeURIComponent(d.text)}`; });
+      })
+      .start();
+  }
+
+  const cloudTab = document.getElementById('cloud-tab');
+  if (cloudTab) {
+    cloudTab.addEventListener('shown.bs.tab', async () => {
+      if (!cachedPosKeywords.length && !cachedNegKeywords.length) await loadKeywords(false);
+      generateWordCloud(cachedPosKeywords, cachedNegKeywords);
+    });
+  }
+
+  let trendChart = null;
+  let weeklyChart = null;
+
+  async function loadTrend(days = 7) {
+    try {
+      const resp = await fetch(`/api/analytics/trend?days=${days}`);
+      const data = await resp.json();
+      const labels = data.map(r => r.date);
+      const shortLabels = labels.map((label) => {
+        if (!label) return '';
+        const parts = String(label).split('-');
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}`;
+        return label;
+      });
+      const posData = data.map(r => r.pos);
+      const negData = data.map(r => r.neg);
+
+      const ctx = document.getElementById('trendChart').getContext('2d');
+      if (trendChart) trendChart.destroy();
+      trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: shortLabels,
+          datasets: [
+            { label: 'Positif', data: posData, borderColor: '#198754', backgroundColor: 'rgba(25,135,84,0.15)', fill: true, tension: 0.35 },
+            { label: 'Negatif', data: negData, borderColor: '#dc3545', backgroundColor: 'rgba(220,53,69,0.12)', fill: true, tension: 0.35 }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: chartTextColor(),
+                boxWidth: 14,
+                boxHeight: 8,
+                padding: 12,
+                font: { size: 11 }
+              }
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              callbacks: {
+                title: (items) => {
+                  const idx = items?.[0]?.dataIndex ?? 0;
+                  return labels[idx] || '';
+                }
+              }
+            }
+          },
+          interaction: { mode: 'index', intersect: false },
+          scales: {
+            x: {
+              grid: { color: chartGridColor() },
+              ticks: {
+                color: chartTextColor(),
+                maxRotation: 0,
+                minRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 5,
+                font: { size: 10 }
+              }
+            },
+            y: { beginAtZero: true, grid: { color: chartGridColor() }, ticks: { color: chartTextColor() } }
+          }
+        }
+      });
+
+      const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+      if (weeklyChart) weeklyChart.destroy();
+      const weeklyDataEl = document.getElementById('weekly-data');
+      const lastWeek = parseInt(weeklyDataEl?.dataset.lastWeek || '0', 10);
+      const thisWeek = parseInt(weeklyDataEl?.dataset.thisWeek || '0', 10);
+      weeklyChart = new Chart(weeklyCtx, {
+        type: 'bar',
+        data: {
+          labels: ["Minggu Lalu", "Minggu Ini"],
+          datasets: [{ label: 'Jumlah Review', data: [lastWeek, thisWeek], backgroundColor: ['#6c757d', '#0d6efd'] }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: chartTextColor() }, grid: { color: chartGridColor() } },
+            y: { beginAtZero: true, ticks: { color: chartTextColor() }, grid: { color: chartGridColor() } }
+          }
+        }
+      });
+    } catch (err) {
+      console.error("Trend API failed", err);
+    }
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
+
+  getSchedulerStatus();
+  loadKeywords(false);
+  loadTrend();
+  window.addEventListener('themechange', () => {
+    loadTrend();
+    if (document.getElementById('cloud-view')?.classList.contains('show')) {
+      generateWordCloud(cachedPosKeywords, cachedNegKeywords);
+    }
+  });
+});
+</script>
+{% endblock %}
